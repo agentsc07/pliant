@@ -4,3 +4,17 @@
 - Read README.md, spec.md, SUBMISSION_TASK.md. 111 source files, all readable (no iCloud eviction → no `_holding/` needed).
 - `pnpm install && pnpm test`: initially chat-backend failed (better-sqlite3 11 has no build for Node v26). **Decision:** bumped better-sqlite3 to ^13.0.3 (needs Node ≥22). All tests then pass: core 42, server 4, studio 6, react 7, backend 19.
 - `git init`, .gitignore (node_modules, *.db, .env*, dist, *.pem, *.key).
+
+## Step 1 — one deployable unit (done)
+- `examples/chat-backend/src/server.ts` now also serves `chat-pliant/dist` (/ and /compare) and `chat-classic/dist` (/classic/). Frontends build with `VITE_API=` (same origin).
+- `PLIANT_DEMO=1` → in-memory SQLite, reseeded on every boot. `pnpm demo` and `docker run -p 4000:4000 pliant-demo` both verified (HTTP 200 on /, /classic/, /compare, /__pliant/manifest; Playwright smoke: 40 groups, dark-mode patch applied, 3-user compare view loads, no console/network errors).
+- **Decision:** `/compare` gained a `?view=users` mode (three users, three UIs) because the demo script needs it. Banner "resets on restart; first load can take ~50 s" added (build-time flag VITE_DEMO).
+
+## Step 2 — real-model path (code done, real-provider run PENDING a key)
+- `packages/studio/src/openai.ts`: OpenAI-compatible provider (JSON mode). Presets for Groq, Gemini, OpenRouter. **Decision:** base URLs come from a fixed preset table, never from the request (SSRF guard); provider errors are scrubbed of the key.
+- Customise panel: "Use your own model key" (provider, key, optional model, "remember in this browser"). Headers `x-pliant-llm-*` per request; server never stores/logs it. Tests added (unknown provider refused; key never echoed).
+- Server-side default: `PLIANT_PROVIDER=openai PLIANT_PRESET=groq OPENAI_API_KEY=…`.
+- **Blocked on the owner:** no hosted-model key exists on this machine, so the "9 demos on one real provider" run is not done yet (see Step 3).
+
+## Step 4 — deploy prep (done; Render click-through needs the owner's login)
+- `Dockerfile`, `.dockerignore`, `render.yaml`, `docs/deploy.md`, `startup.md`.

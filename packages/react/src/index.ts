@@ -4,4 +4,4 @@ export { Screen } from "./screen";
 export { Slot, Item, type SlotProps } from "./slot";
 export { registerComponent, registeredNames } from "./registry";
 export { CustomizeButton, CustomizePanel } from "./panel";
-export { callCapability, pliantApi } from "./api";
+export { callCapability, pliantApi, type LlmKey } from "./api";

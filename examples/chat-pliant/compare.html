@@ -16,22 +16,32 @@
       .tag { font-size: .7rem; background: #1e293b; border-radius: 99px; padding: .1rem .6rem; color: #94a3b8; font-weight: 400; }
       iframe { flex: 1; width: 100%; border: 1px solid #334155; border-radius: 10px; background: #fff; min-height: 0; }
       @media (max-width: 900px) { .panes { grid-template-columns: 1fr; grid-auto-rows: 1fr; } }
+          nav a { color: #93c5fd; font-size: .85rem; } .demo { margin-left: auto; font-size: .75rem; color: #fbbf24; }
     </style>
   </head>
   <body>
     <header>
       <h1>Groupy: the same app, two ways</h1>
-      <span>Left: fixed UI, one group at a time. Right: press ✨ Customize and ask for what you want.</span>
+      <span id="blurb">Left: fixed UI. Right: press ✨ Customize and ask for what you want.</span>
+      <nav><a href="?view=classic">Classic vs Pliant</a> · <a href="?view=users">Three users, three UIs</a></nav>
+      <span class="demo">Demo: resets on restart; first load can take ~50 s.</span>
     </header>
-    <div class="panes">
-      <section class="pane"><h2>Classic <span class="tag">plain React</span></h2><iframe id="classic" title="Classic app"></iframe></section>
-      <section class="pane"><h2>Pliant <span class="tag">same components, wrapped</span></h2><iframe id="pliant" title="Pliant app"></iframe></section>
-    </div>
+    <div class="panes" id="panes"></div>
     <script>
-      const user = new URLSearchParams(location.search).get("user") || "u1";
-      const host = location.hostname;
-      document.getElementById("classic").src = `http://${host}:5173/?user=${user}`;
-      document.getElementById("pliant").src = `http://${host}:5174/?user=${user}`;
+      const q = new URLSearchParams(location.search);
+      const view = q.get("view") || "classic";
+      const dev = location.port === "5174";           // vite dev servers; otherwise everything is on one origin
+      const pliantUrl = (u) => (dev ? `http://${location.hostname}:5174/` : "/") + `?user=${u}`;
+      const classicUrl = (u) => (dev ? `http://${location.hostname}:5173/` : "/classic/") + `?user=${u}`;
+      const panes = view === "users"
+        ? [["Sai (u1)", "u1"], ["Maya (u2)", "u2"], ["Ravi (u3)", "u3"]].map(([t, u]) => [t, "Pliant · own profile", pliantUrl(u)])
+        : [["Classic", "plain React", classicUrl(q.get("user") || "u1")], ["Pliant", "same components, wrapped", pliantUrl(q.get("user") || "u1")]];
+      if (view === "users") {
+        document.getElementById("blurb").textContent = "Same app, same backend: each user customises their own copy. Try a different request in each.";
+        document.getElementById("panes").style.gridTemplateColumns = "1fr 1fr 1fr";
+      }
+      document.getElementById("panes").innerHTML = panes.map(([t, tag, src]) =>
+        `<section class="pane"><h2>${t} <span class="tag">${tag}</span></h2><iframe title="${t}" src="${src}"></iframe></section>`).join("");
     </script>
   </body>
 </html>

@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: pliant-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /__pliant/manifest
+    envVars:
+      - key: PLIANT_MOCK
+        value: "1"
+      - key: PLIANT_DEMO
+        value: "1"

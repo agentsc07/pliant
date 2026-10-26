@@ -22,6 +22,9 @@ export function App() {
   return (
     <PliantProvider manifestUrl="/__pliant/manifest" baseUrl={API} userId={userId} onChange={refresh}>
       <Screen id="chatList">
+        {(import.meta as any).env?.VITE_DEMO && (
+          <div className="demo-banner" data-testid="demo-banner">Demo: resets on restart; first load can take ~50 s. <a href="/compare">Compare views</a></div>
+        )}
         <div className="app">
           <aside className="sidebar">
             <Slot id="chatList.header"><Header /></Slot>

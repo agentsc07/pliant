@@ -1,9 +1,18 @@
 import { describePatch, type Patch } from "@pliant/core";
 import { useEffect, useState } from "react";
-import type { CustomizeResponse } from "./api";
+import type { CustomizeResponse, LlmKey } from "./api";
 import { usePliant } from "./context";
 
 const LAYER_NAMES: Record<string, string> = { L0: "Look", L1: "Layout", L2: "Views", L3: "Workflows", L4: "Capabilities" };
+
+const KEY_STORE = "pliant.llmKey";
+function loadKey(): LlmKey & { remember: boolean } {
+  try {
+    const raw = localStorage.getItem(KEY_STORE);
+    if (raw) return { ...JSON.parse(raw), remember: true };
+  } catch { /* storage unavailable: keep the key in memory only */ }
+  return { provider: "groq", apiKey: "", model: "", remember: false };
+}
 
 /** Button the developer drops anywhere (usually in a header slot) to open the customization panel. */
 export function CustomizeButton({ label = "Customize" }: { label?: string }) {
@@ -19,6 +28,7 @@ export function CustomizePanel() {
   const [err, setErr] = useState<string | null>(null);
   const [dry, setDry] = useState<string[] | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [llm, setLlm] = useState(loadKey);
   const [reply, setReply] = useState("");
   const [asked, setAsked] = useState("");
 
@@ -30,7 +40,7 @@ export function CustomizePanel() {
     setAsked(original); setReply("");
     setBusy(true); setErr(null); setRes(null); setDry(null); p.setPreview(null);
     try {
-      const r = await p.customize(request);
+      const r = await p.customize(request, llm.apiKey ? { provider: llm.provider, apiKey: llm.apiKey, model: llm.model } : undefined);
       setRes(r);
       if (r.verdict.verdict === "allow" && r.patch) p.setPreview(r.patch);
     } catch (e) { setErr((e as Error).message); }
@@ -41,6 +51,15 @@ export function CustomizePanel() {
   function answer(a: string) {
     if (!a.trim() || !v) return;
     submit(`${asked}\n(You asked: "${v.reason}" — my answer: ${a.trim()})`, asked);
+  }
+
+  function updateLlm(next: Partial<typeof llm>) {
+    const n = { ...llm, ...next };
+    setLlm(n);
+    try {
+      if (n.remember && n.apiKey) localStorage.setItem(KEY_STORE, JSON.stringify({ provider: n.provider, apiKey: n.apiKey, model: n.model }));
+      else localStorage.removeItem(KEY_STORE);
+    } catch { /* ignore */ }
   }
 
   async function accept() {
@@ -74,6 +93,19 @@ export function CustomizePanel() {
         />
         <button type="submit" className="primary" disabled={busy || !text.trim()} data-testid="customize-submit">{busy ? "Thinking…" : "Customize"}</button>
       </form>
+
+      <details className="pliant-byok" data-testid="byok">
+        <summary>{llm.apiKey ? `Using your ${llm.provider} key` : "Use your own model key (optional)"}</summary>
+        <p className="pliant-hint">Without a key the public demo answers a fixed set of example requests. A free Groq, Gemini or OpenRouter key lets it handle anything. Your key stays in this browser and is sent only with each request. The server never stores or logs it.</p>
+        <div className="pliant-clarify">
+          <select value={llm.provider} onChange={(e) => updateLlm({ provider: e.target.value })} aria-label="Provider" data-testid="byok-provider">
+            <option value="groq">Groq</option><option value="gemini">Gemini</option><option value="openrouter">OpenRouter</option>
+          </select>
+          <input type="password" autoComplete="off" placeholder="API key" value={llm.apiKey} onChange={(e) => updateLlm({ apiKey: e.target.value })} data-testid="byok-key" />
+          <input placeholder="Model (optional)" value={llm.model ?? ""} onChange={(e) => updateLlm({ model: e.target.value })} data-testid="byok-model" />
+          <label className="pliant-hint"><input type="checkbox" checked={llm.remember} onChange={(e) => updateLlm({ remember: e.target.checked })} /> Remember in this browser</label>
+        </div>
+      </details>
 
       <p className="pliant-hint">You can change: look (theme, text size, colours, density, nav bar left/top), layout (hide, move, resize, sort), views and filters, and selection with bulk actions. Backend-level features need the developer.</p>
 

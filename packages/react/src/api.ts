@@ -25,9 +25,14 @@ export const pliantApi = {
   reset: (c: ApiConfig) => request<unknown>(c, "DELETE", `/__pliant/profile/${c.userId}`),
   reorder: (c: ApiConfig, ids: string[]) => request<{ patches: Patch[] }>(c, "POST", `/__pliant/profile/${c.userId}/reorder`, { ids }),
   registerRun: (c: ApiConfig, workflowId: string, fanOut: number) => request<{ runId: string }>(c, "POST", "/__pliant/run", { workflowId, fanOut }),
-  customize: (c: ApiConfig, request_: string) =>
-    request<CustomizeResponse>(c, "POST", "/__pliant/customize", { request: request_ }),
+  customize: (c: ApiConfig, request_: string, llm?: LlmKey) =>
+    request<CustomizeResponse>(c, "POST", "/__pliant/customize", { request: request_ }, llm?.apiKey ? {
+      "x-pliant-llm-provider": llm.provider, "x-pliant-llm-key": llm.apiKey, ...(llm.model ? { "x-pliant-llm-model": llm.model } : {}),
+    } : {}),
 };
+
+/** A user's own model key. Lives in the browser only; sent per request, never stored server-side. */
+export interface LlmKey { provider: string; apiKey: string; model?: string }
 
 export interface CustomizeResponse {
   verdict: Verdict;

@@ -63,3 +63,6 @@ input, textarea { font: inherit; color: var(--fg); background: var(--bg); border
 [data-nav="top"] .sidebar { border-right: 0; border-bottom: 1px solid var(--border); max-height: 45vh; overflow-y: auto; }
 [data-nav="top"] .group-list { display: flex; flex-direction: row; overflow-x: auto; gap: 0.4em; padding: 0.4em 1em; }
 [data-nav="top"] .group-row { min-width: 14em; flex: 0 0 auto; border: 1px solid var(--border); border-radius: var(--radius); }
+
+.demo-banner { position: fixed; bottom: 0; left: 0; right: 0; z-index: 5; text-align: center; font-size: 0.75rem; padding: 0.25em; background: #fef3c7; color: #78350f; }
+.demo-banner a { color: inherit; }

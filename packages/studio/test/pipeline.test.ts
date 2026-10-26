@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createPipeline, MAX_RETRIES, trustVerdict, type LLM } from "../src";
+import { createCustomizer, createPipeline, MAX_RETRIES, OpenAICompatLLM, trustVerdict, type LLM } from "../src";
 import type { Manifest } from "@pliant/core";
 
 const manifest: Manifest = {
@@ -69,5 +69,22 @@ describe("pipeline", () => {
     expect(classified).toBe(false);
     expect(r.patch).toBeUndefined();
     expect(r.errors?.join(" ")).toMatch(/locked/);
+  });
+
+  it("bring-your-own-key: unknown providers are refused (no arbitrary base URLs)", async () => {
+    const r = await createCustomizer({ mock: true })({ ...input, byok: { provider: "https://evil.example", apiKey: "k" } });
+    expect(r.verdict.verdict).toBe("deny");
+  });
+
+  it("bring-your-own-key: provider errors never echo the key", async () => {
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async () => new Response("bad key sk-SECRET-123", { status: 401 })) as typeof fetch;
+    try {
+      const llm = new OpenAICompatLLM({ apiKey: "sk-SECRET-123", baseUrl: "https://x.test/v1", model: "m" });
+      const err = await llm.generate({ ...input, layer: "L1" }).catch((e: Error) => e);
+      expect(err).toBeInstanceOf(Error);
+      expect((err as Error).message).toContain("[key]");
+      expect((err as Error).message).not.toContain("SECRET");
+    } finally { globalThis.fetch = realFetch; }
   });
 });

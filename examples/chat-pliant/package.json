@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --port 5174",
     "build": "vite build",
+    "build:demo": "VITE_API= VITE_DEMO=1 vite build",
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test"
   },

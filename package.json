@@ -5,6 +5,8 @@
   "scripts": {
     "test": "pnpm -r --if-present --no-bail test",
     "typecheck": "pnpm -r --if-present typecheck",
+    "build:web": "pnpm --filter chat-pliant build:demo && pnpm --filter chat-classic build:demo",
+    "demo": "pnpm build:web && PLIANT_MOCK=1 PLIANT_DEMO=1 pnpm --filter chat-backend start",
     "dev:backend": "pnpm --filter chat-backend dev",
     "dev:classic": "pnpm --filter chat-classic dev",
     "dev:pliant": "pnpm --filter chat-pliant dev",

@@ -6,6 +6,7 @@ export interface PipelineInput {
   profile: Patch[];
   slots?: string[];
   catalog?: string[];
+  byok?: { provider: string; apiKey: string; model?: string };
 }
 
 /** The two model-backed steps. Everything around them is deterministic. */

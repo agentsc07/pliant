@@ -4,7 +4,7 @@ import {
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from "react";
-import { callCapability, pliantApi, type ApiConfig, type CustomizeResponse } from "./api";
+import { callCapability, pliantApi, type ApiConfig, type CustomizeResponse, type LlmKey } from "./api";
 import { Overlays } from "./overlays";
 
 export interface SlotData { entity: string; items: any[] }
@@ -60,7 +60,7 @@ export interface PliantCtx {
   runWorkflow: (id: string, opts?: { input?: unknown[] }) => Promise<void>;
   dryRun: (wf: Workflow) => Promise<string[]>;
 
-  customize: (request: string) => Promise<CustomizeResponse>;
+  customize: (request: string, llm?: LlmKey) => Promise<CustomizeResponse>;
   savePatch: (p: Patch) => Promise<string[]>;
   togglePatch: (id: string) => Promise<void>;
   deletePatch: (id: string) => Promise<void>;
@@ -232,7 +232,7 @@ export function PliantProvider({ manifestUrl, userId, baseUrl = "", onChange, ch
   }, [manifest, slotData]);
 
   // ----- profile management -----
-  const customize = useCallback((request: string) => pliantApi.customize(cfg, request), [cfg]);
+  const customize = useCallback((request: string, llm?: LlmKey) => pliantApi.customize(cfg, request, llm), [cfg]);
   const savePatch = useCallback(async (p: Patch) => {
     const r = await pliantApi.savePatch(cfg, p);
     await refreshProfile();

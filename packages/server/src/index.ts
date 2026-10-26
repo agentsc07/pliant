@@ -33,7 +33,11 @@ export interface CustomizeResult {
 
 /** Injected by the host app (usually @pliant/studio) so this package stays LLM-free. */
 export interface CustomizeHandler {
-  (input: { request: string; userId: string; manifest: Manifest; profile: Patch[]; slots?: string[]; catalog?: string[] }): Promise<CustomizeResult>;
+  (input: {
+    request: string; userId: string; manifest: Manifest; profile: Patch[]; slots?: string[]; catalog?: string[];
+    /** Bring-your-own-key: sent per request in headers, used for this call only, never stored or logged. */
+    byok?: { provider: string; apiKey: string; model?: string };
+  }): Promise<CustomizeResult>;
 }
 
 export interface PliantOptions {
@@ -132,7 +136,9 @@ export function createPliant(opts: PliantOptions) {
       const body = z.object({ request: z.string().min(1) }).safeParse(req.body);
       if (!body.success) return void res.status(400).json({ error: "bad_request" });
       const userId = userIdOf(req);
-      res.json(await opts.customize({ request: body.data.request, userId, manifest: manifest(), profile: store.list(userId), slots: opts.slots, catalog: opts.catalog }));
+      const key = req.header("x-pliant-llm-key");
+      const byok = key ? { provider: req.header("x-pliant-llm-provider") ?? "", apiKey: key, model: req.header("x-pliant-llm-model") || undefined } : undefined;
+      res.json(await opts.customize({ request: body.data.request, userId, manifest: manifest(), profile: store.list(userId), slots: opts.slots, catalog: opts.catalog, byok }));
     } catch (e) { next(e); }
   });
 
