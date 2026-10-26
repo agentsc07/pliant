@@ -1,0 +1,70 @@
+/* Neutral styling that reads the host app's CSS variables (--bg, --fg, --accent, ...) with fallbacks. */
+.pliant-root { background: var(--bg, #fff); color: var(--fg, #111); min-height: 100vh; height: 100vh; font-family: var(--font-family, system-ui, sans-serif); }
+.pliant-root [hidden] { display: none !important; }
+.pliant-screen { display: flex; flex-direction: column; height: 100%; }
+.pliant-screen-body { flex: 1; min-height: 0; }
+.pliant-tabbar { display: flex; gap: .25em; padding: .4em .8em; border-bottom: 1px solid var(--border, #e5e7eb); background: var(--bg, #fff); }
+.pliant-tabbar button.on, .pliant-tabs button.on { background: var(--accent, #16a34a); color: var(--accent-fg, #fff); }
+.pliant-views { padding: 1em; overflow: auto; flex: 1; }
+.pliant-slot { display: contents; }
+.pliant-slot[data-size="small"] { font-size: .85em; }
+.pliant-slot[data-size="large"] { font-size: 1.2em; }
+.pliant-moved-in:empty { display: none; }
+
+.pliant-item { display: flex; align-items: center; gap: .5em; padding-left: .8em; cursor: pointer; border-bottom: 1px solid var(--border, #e5e7eb); }
+.pliant-item .pliant-item-body { flex: 1; min-width: 0; }
+.pliant-item .pliant-item-body > * { border-bottom: 0; }
+.pliant-item.selected { background: color-mix(in srgb, var(--accent, #16a34a) 14%, var(--bg, #fff)); }
+
+.pliant-chip { border-radius: 99px; padding: .15em .7em; font-size: .85em; }
+.pliant-chip.on { background: var(--accent, #16a34a); color: var(--accent-fg, #fff); border-color: var(--accent, #16a34a); }
+.pliant-filterbar { display: flex; gap: .4em; padding: .5em 1em; flex-wrap: wrap; }
+.pliant-viewchips { display: flex; gap: .4em; flex-wrap: wrap; margin-bottom: .5em; }
+.pliant-selection-bar { display: flex; align-items: center; gap: .5em; padding: .5em 1em; background: color-mix(in srgb, var(--accent, #16a34a) 12%, var(--bg, #fff)); border-bottom: 1px solid var(--border, #e5e7eb); flex-wrap: wrap; }
+.pliant-spacer { flex: 1; }
+.pliant-row { display: flex; gap: .4em; align-items: center; margin: .5em 0; flex-wrap: wrap; }
+.pliant-muted { color: var(--muted, #6b7280); }
+.pliant-empty { color: var(--muted, #6b7280); padding: 1em; text-align: center; }
+.pliant-table { border-collapse: collapse; width: 100%; }
+.pliant-table th, .pliant-table td { text-align: left; padding: .45em .6em; border-bottom: 1px solid var(--border, #e5e7eb); }
+.pliant-card, .pliant-stat { border: 1px solid var(--border, #e5e7eb); border-radius: var(--radius, 10px); padding: .7em 1em; margin: .5em 1em; background: var(--bg, #fff); }
+.pliant-stat-value { font-size: 1.8em; font-weight: 700; }
+.pliant-stat-label { color: var(--muted, #6b7280); font-size: .85em; }
+.pliant-bar-row { display: flex; align-items: center; gap: .5em; padding: .15em 1em; font-size: .85em; }
+.pliant-bar-label { width: 9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pliant-bar { height: .8em; background: var(--accent, #16a34a); border-radius: 3px; min-width: 2px; }
+
+.pliant-modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: grid; place-items: center; z-index: 50; }
+.pliant-modal { background: var(--bg, #fff); color: var(--fg, #111); border-radius: var(--radius, 10px); padding: 1.2em; min-width: 20em; max-width: 90vw; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+.pliant-modal-actions { display: flex; gap: .5em; justify-content: flex-end; margin-top: 1em; }
+.pliant-toast { position: fixed; left: 50%; bottom: 1.2em; transform: translateX(-50%); z-index: 60; background: var(--fg, #111); color: var(--bg, #fff); border-radius: var(--radius, 10px); padding: .8em 1.1em; min-width: 18em; max-width: 90vw; box-shadow: 0 6px 24px rgba(0,0,0,.35); }
+.pliant-toast.warn { border-left: 5px solid #f59e0b; }
+.pliant-toast.ok { border-left: 5px solid var(--accent, #16a34a); }
+.pliant-toast progress { width: 100%; margin-top: .4em; }
+.pliant-toast button { color: var(--fg, #111); }
+.pliant-toast-actions { display: flex; gap: .5em; margin-top: .6em; justify-content: flex-end; }
+.pliant-failures { margin: .4em 0 0; padding-left: 1.2em; font-size: .85em; opacity: .9; }
+
+.pliant-panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(26em, 100vw); z-index: 40; background: var(--bg, #fff); color: var(--fg, #111); border-left: 1px solid var(--border, #e5e7eb); box-shadow: -8px 0 30px rgba(0,0,0,.18); padding: 1em; overflow-y: auto; font-size: 14px; }
+.pliant-panel h2 { margin: 0; font-size: 1.2em; }
+.pliant-panel h3 { margin: 1em 0 .3em; font-size: 1em; }
+.pliant-panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6em; }
+.pliant-panel textarea { width: 100%; resize: vertical; margin-bottom: .4em; }
+.pliant-verdict { border: 1px solid var(--border, #e5e7eb); border-radius: var(--radius, 10px); padding: .7em; margin-top: .8em; }
+.pliant-verdict.deny { border-color: var(--danger, #dc2626); }
+.pliant-verdict.allow { border-color: var(--accent, #16a34a); }
+.pliant-verdict-head { display: flex; gap: .5em; align-items: center; }
+.pliant-note { background: var(--bg-alt, #f3f4f6); border-radius: var(--radius, 10px); padding: .5em .7em; margin: .4em 0; font-size: .9em; }
+.pliant-note.bad { color: var(--danger, #dc2626); }
+.pliant-dry, .pliant-diff { background: var(--bg-alt, #f3f4f6); padding: .6em; border-radius: var(--radius, 10px); overflow: auto; font-size: .8em; white-space: pre-wrap; }
+.pliant-patches { list-style: none; padding: 0; margin: 0; }
+.pliant-patches li { border: 1px solid var(--border, #e5e7eb); border-radius: var(--radius, 10px); padding: .3em .5em; margin-bottom: .4em; }
+.pliant-patches li.off { opacity: .55; }
+.pliant-changes { margin: .3em 0 .3em 2em; font-size: .85em; }
+button.link { border: 0; background: none; text-align: left; text-decoration: underline; padding: 0; }
+
+.pliant-sort { display: flex; align-items: center; gap: 0.5em; padding: 0.4em 1em; font-size: 0.85em; }
+.pliant-sort select { font: inherit; }
+.pliant-clarify { display: flex; flex-direction: column; gap: 0.4em; margin-top: 0.5em; }
+.pliant-clarify .pliant-row { gap: 0.4em; }
+.pliant-hint { font-size: 0.8em; opacity: 0.7; margin: 0.4em 0 0; }

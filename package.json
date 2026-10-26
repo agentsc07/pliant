@@ -1,0 +1,21 @@
+{
+  "name": "pliant",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "pnpm -r --if-present --no-bail test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "dev:backend": "pnpm --filter chat-backend dev",
+    "dev:classic": "pnpm --filter chat-classic dev",
+    "dev:pliant": "pnpm --filter chat-pliant dev",
+    "e2e": "pnpm --filter chat-pliant e2e",
+    "dev": "pnpm --parallel --filter chat-backend --filter chat-classic --filter chat-pliant dev",
+    "dev:mock": "PLIANT_MOCK=1 pnpm dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5",
+    "tsx": "^4.16.5",
+    "@types/node": "^20.14.0"
+  }
+}

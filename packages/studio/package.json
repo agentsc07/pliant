@@ -1,0 +1,17 @@
+{
+  "name": "@pliant/studio",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
+    "@pliant/core": "workspace:*",
+    "@pliant/server": "workspace:*",
+    "zod": "^3.23.8"
+  }
+}
