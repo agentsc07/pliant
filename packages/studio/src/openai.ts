@@ -29,7 +29,7 @@ export class OpenAICompatLLM implements LLM {
 
   private async chat(model: string, system: string, user: string): Promise<unknown> {
     const r = await fetch(`${this.o.baseUrl.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
+      method: "POST", signal: AbortSignal.timeout(Number(process.env.PLIANT_TIMEOUT_MS ?? 60_000)),
       headers: { "content-type": "application/json", authorization: `Bearer ${this.o.apiKey}` },
       body: JSON.stringify({
         model, temperature: 0.1, response_format: { type: "json_object" },

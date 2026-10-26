@@ -57,7 +57,7 @@ export class OllamaLLM implements LLM {
         options: { temperature: 0.1 },
         messages: [{ role: "system", content: system }, { role: "user", content: user }],
       }),
-    }).catch((e) => { throw new Error(`Cannot reach Ollama at ${this.host} (${e.message}). Is \`ollama serve\` running?`); });
+    }).catch((e) => { if (e?.name === "TimeoutError") throw new Error("Ollama did not answer within the timeout (model too slow for this request)"); throw new Error(`Cannot reach Ollama at ${this.host} (${e.message}). Is \`ollama serve\` running?`); });
     if (!r.ok) throw new Error(`Ollama ${r.status}: ${(await r.text()).slice(0, 300)}`);
     const body = (await r.json()) as { message?: { content?: string } };
     try { return JSON.parse(body.message?.content ?? ""); }
