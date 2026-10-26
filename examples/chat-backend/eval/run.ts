@@ -20,7 +20,10 @@ if (provider === "mock") base = new MockLLM();
 else if (provider === "ollama") base = new OllamaLLM();
 else {
   const l = llmFromByok({ provider: process.env.PLIANT_PRESET ?? "groq", apiKey: process.env.OPENAI_API_KEY ?? "", model: process.env.PLIANT_MODEL });
-  if (!l) throw new Error("openai provider needs PLIANT_PRESET and OPENAI_API_KEY");
+  if (!l) {
+    console.log(`\nMissing config: set OPENAI_API_KEY (your key) and PLIANT_PRESET (groq|gemini|openrouter; got "${process.env.PLIANT_PRESET ?? "groq"}").\nExample:  export OPENAI_API_KEY=gsk_...   then re-run.\n`);
+    process.exit(1);
+  }
   base = l;
 }
 let generateCalls = 0;
