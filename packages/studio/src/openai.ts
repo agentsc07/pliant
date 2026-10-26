@@ -27,7 +27,20 @@ const PATCH_SHAPE = `Respond with ONE JSON object: {"layer":"L0"|"L1"|"L2"|"L3",
 export class OpenAICompatLLM implements LLM {
   constructor(private o: OpenAICompatOptions) {}
 
+  /** Free tiers rate-limit by tokens/minute: on 429, wait as long as the provider says (capped) and try again. */
   private async chat(model: string, system: string, user: string): Promise<unknown> {
+    const MAX_ATTEMPTS = Number(process.env.PLIANT_429_RETRIES ?? 5);
+    for (let attempt = 1; ; attempt++) {
+      try { return await this.chatOnce(model, system, user); }
+      catch (e) {
+        const wait = (e as { retryAfterMs?: number }).retryAfterMs;
+        if (wait === undefined || attempt >= MAX_ATTEMPTS) throw e;
+        await new Promise((res) => setTimeout(res, wait));
+      }
+    }
+  }
+
+  private async chatOnce(model: string, system: string, user: string): Promise<unknown> {
     const r = await fetch(`${this.o.baseUrl.replace(/\/$/, "")}/chat/completions`, {
       method: "POST", signal: AbortSignal.timeout(Number(process.env.PLIANT_TIMEOUT_MS ?? 60_000)),
       headers: { "content-type": "application/json", authorization: `Bearer ${this.o.apiKey}` },
@@ -36,7 +49,17 @@ export class OpenAICompatLLM implements LLM {
         messages: [{ role: "system", content: system }, { role: "user", content: user }],
       }),
     }).catch((e) => { throw new Error(this.scrub(`Cannot reach the model provider (${e.message})`)); });
-    if (!r.ok) throw new Error(this.scrub(`Model provider returned ${r.status}: ${(await r.text()).slice(0, 200)}`));
+    if (!r.ok) {
+      const text = await r.text();
+      const err: Error & { retryAfterMs?: number } = new Error(this.scrub(`Model provider returned ${r.status}: ${text.slice(0, 200)}`));
+      if (r.status === 429) {
+        const hdr = Number(r.headers.get("retry-after"));
+        const msg = /try again in ([\d.]+)(ms|s|m)/i.exec(text);
+        const fromMsg = msg ? Number(msg[1]) * (msg[2] === "ms" ? 1 : msg[2] === "m" ? 60_000 : 1000) : NaN;
+        err.retryAfterMs = Math.min(90_000, Math.max(2_000, (Number.isFinite(hdr) && hdr > 0 ? hdr * 1000 : fromMsg) + 1_000 || 20_000));
+      }
+      throw err;
+    }
     const body = (await r.json()) as { choices?: { message?: { content?: string } }[] };
     const text = (body.choices?.[0]?.message?.content ?? "").trim().replace(/^```(?:json)?\s*|\s*```$/g, "");
     try { return JSON.parse(text); } catch { throw new Error("The model returned non-JSON output"); }

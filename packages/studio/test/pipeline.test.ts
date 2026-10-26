@@ -88,3 +88,22 @@ describe("pipeline", () => {
     } finally { globalThis.fetch = realFetch; }
   });
 });
+
+describe("hosted provider rate limits", () => {
+  it("waits and retries on 429, then succeeds", async () => {
+    const realFetch = globalThis.fetch, realTimeout = globalThis.setTimeout;
+    let calls = 0;
+    globalThis.fetch = (async () => {
+      calls++;
+      return calls === 1
+        ? new Response('{"error":{"message":"Rate limit. Please try again in 1s."}}', { status: 429 })
+        : new Response(JSON.stringify({ choices: [{ message: { content: '{"layer":"L0","ops":[]}' } }] }), { status: 200 });
+    }) as typeof fetch;
+    globalThis.setTimeout = ((fn: () => void) => realTimeout(fn, 0)) as typeof setTimeout; // don't actually wait in the test
+    try {
+      const llm = new OpenAICompatLLM({ apiKey: "k", baseUrl: "https://x.test/v1", model: "m" });
+      await expect(llm.generate({ ...input, layer: "L0" })).resolves.toEqual({ layer: "L0", ops: [] });
+      expect(calls).toBe(2);
+    } finally { globalThis.fetch = realFetch; globalThis.setTimeout = realTimeout; }
+  });
+});
