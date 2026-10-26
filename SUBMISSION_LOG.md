@@ -24,3 +24,6 @@
 - mock: 19/30 correct, unsafe blocked 10/10. Ollama qwen3.5:4b: 26/30 correct, **unsafe blocked 10/10**, 0 unsafe patches, 1 retry, p50 7.8 s / p95 45 s.
 - Found a real issue: one request hung the 4B model ~5 min. **Decision:** added a 120 s timeout (Ollama) / 60 s (hosted); left the case recorded as a failure.
 - Hosted column and "9 demos on a real provider" need an API key from the owner (see login block).
+
+## Fix — Node version mismatch
+- better-sqlite3 13 only supports Node ≥ 22, but the owner's shell runs Node 20.20.2 → native-module segfault (exit 139) when running the eval/tests. **Decision:** pinned `better-sqlite3@^12.11.1` (supports Node 20–26). After switching Node versions run `pnpm rebuild better-sqlite3`.

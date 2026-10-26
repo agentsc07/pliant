@@ -1,7 +1,7 @@
 # Pliant: startup
 
 ## Prerequisites
-- Node ≥ 22, pnpm 12 (`npm i -g pnpm@12`). Docker only for the container route.
+- Node 20–26, pnpm 12 (`npm i -g pnpm@12`). Docker only for the container route.
 
 ## Setup
 ```bash
@@ -33,6 +33,6 @@ pnpm dev:mock                  # backend :4000, classic :5173, pliant :5174
 - `pnpm test` (unit + API), `pnpm typecheck`, `pnpm e2e` (Playwright; needs `pnpm exec playwright install chromium`; **stop any `pnpm dev` first**, e2e reuses ports 4000/5174).
 
 ## Common problems
-- `better_sqlite3.node` / NODE_MODULE_VERSION error → `pnpm install` (better-sqlite3 ≥ 13 needs Node ≥ 22).
+- Segfault / `better_sqlite3.node` / NODE_MODULE_VERSION error (you switched Node versions) → `pnpm rebuild better-sqlite3`.
 - Port 4000 busy → `lsof -ti:4000 | xargs kill`, or set `PORT=4001`.
 - e2e fails with "verdict not found" → a real-model dev server is holding port 4000; stop it.

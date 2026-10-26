@@ -24,4 +24,4 @@ Notes
 
 ## Health / troubleshooting
 - `curl https://<url>/__pliant/manifest` should return JSON.
-- Build fails on `better-sqlite3` → the Dockerfile installs `python3 make g++`; make sure the base image stays on Node ≥ 22.
+- Build fails on `better-sqlite3` → the Dockerfile installs `python3 make g++`; make sure the base image stays on Node 20+ (it uses 22).
