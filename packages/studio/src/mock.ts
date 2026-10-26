@@ -134,7 +134,7 @@ export class MockLLM implements LLM {
     if (!f) {
       return {
         verdict: "needs_clarification", layer: "L1", capabilitiesNeeded: [],
-        reason: "Mock mode only understands the demo requests (dark mode, hide stories, 50+ unread tab, select & mute/archive, …). Set PLIANT_MOCK=0 and ANTHROPIC_API_KEY for free-form requests.",
+        reason: "Mock mode only understands the demo requests (dark mode, hide stories, 50+ unread tab, select & mute/archive, …). For free-form requests, open \"Use your own model key\" in this panel and paste a free Groq, Gemini or OpenRouter key.",
       };
     }
     return { capabilitiesNeeded: [], ...f.verdict };

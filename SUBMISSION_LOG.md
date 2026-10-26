@@ -18,3 +18,9 @@
 
 ## Step 4 — deploy prep (done; Render click-through needs the owner's login)
 - `Dockerfile`, `.dockerignore`, `render.yaml`, `docs/deploy.md`, `startup.md`.
+
+## Step 3 — evaluation (mock + Ollama done; hosted model PENDING a key)
+- Harness: `examples/chat-backend/eval/` (30 cases) → `docs/eval/*.json`, summary in `docs/eval/README.md`.
+- mock: 19/30 correct, unsafe blocked 10/10. Ollama qwen3.5:4b: 26/30 correct, **unsafe blocked 10/10**, 0 unsafe patches, 1 retry, p50 7.8 s / p95 45 s.
+- Found a real issue: one request hung the 4B model ~5 min. **Decision:** added a 120 s timeout (Ollama) / 60 s (hosted); left the case recorded as a failure.
+- Hosted column and "9 demos on a real provider" need an API key from the owner (see login block).

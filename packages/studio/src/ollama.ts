@@ -50,7 +50,7 @@ export class OllamaLLM implements LLM {
 
   private async chat(model: string, system: string, user: string, format: object): Promise<unknown> {
     const r = await fetch(`${this.host}/api/chat`, {
-      method: "POST",
+      method: "POST", signal: AbortSignal.timeout(Number(process.env.PLIANT_TIMEOUT_MS ?? 120_000)),
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         model, stream: false, think: false, format,
