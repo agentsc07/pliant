@@ -8,7 +8,7 @@ import type { LLM, PipelineInput } from "./types";
  * request can't point the server at an arbitrary host (SSRF).
  */
 export const PROVIDER_PRESETS: Record<string, { baseUrl: string; model: string }> = {
-  groq: { baseUrl: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile" },
+  groq: { baseUrl: "https://api.groq.com/openai/v1", model: "openai/gpt-oss-120b" },
   gemini: { baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.0-flash" },
   openrouter: { baseUrl: "https://openrouter.ai/api/v1", model: "meta-llama/llama-3.3-70b-instruct:free" },
 };
