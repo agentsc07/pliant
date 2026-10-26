@@ -49,6 +49,8 @@ export interface PliantCtx {
   setSelection: (slot: string, ids: string[]) => void;
   activeFilters: Record<string, string[]>;
   toggleFilter: (slot: string, key: string) => void;
+  toggleStates: Record<string, boolean>;
+  setToggle: (key: string, on: boolean) => void;
   sorts: Record<string, { field: string; direction: "asc" | "desc" }>;
   setSort: (slot: string, s: { field: string; direction: "asc" | "desc" } | null) => void;
   /** Slot that currently drives `selection` in showWhen / workflows. */
@@ -85,11 +87,21 @@ const FONT: Record<string, string> = {
 };
 
 /** Map validated tokens → CSS custom properties / root font-size. The contract is documented in the README. */
+function onAccent(hex: string): string {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  const L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return L > 0.4 ? "#111111" : "#ffffff";
+}
+
 function tokenStyle(tokens: Record<string, string>): React.CSSProperties {
   const s: Record<string, string> = {};
   if (tokens.fontScale) s.fontSize = `${16 * Number(tokens.fontScale)}px`;
   if (tokens.density) s["--row-pad"] = DENSITY[tokens.density];
-  if (tokens.accent) s["--accent"] = tokens.accent;
+  if (tokens.accent) {
+    s["--accent"] = tokens.accent;
+    // Text on the accent must stay readable whatever colour the user picks (WCAG relative luminance).
+    s["--accent-fg"] = onAccent(tokens.accent);
+  }
   if (tokens.radius) s["--radius"] = tokens.radius;
   if (tokens.fontFamily) s["--font-family"] = FONT[tokens.fontFamily];
   return s as React.CSSProperties;
@@ -117,6 +129,8 @@ export function PliantProvider({ manifestUrl, userId, baseUrl = "", onChange, ch
   const [portalTargets, setPortalTargets] = useState<Record<string, HTMLElement | null>>({});
   const [selections, setSelections] = useState<Record<string, string[]>>({});
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({});
+  const [toggleStates, setToggleStates] = useState<Record<string, boolean>>({});
+  const setToggle = useCallback((key: string, on: boolean) => setToggleStates((s) => ({ ...s, [key]: on })), []);
   const [sorts, setSorts] = useState<Record<string, { field: string; direction: "asc" | "desc" }>>({});
   const [run, setRun] = useState<RunState | null>(null);
   const [dialog, setDialog] = useState<PendingDialog | null>(null);
@@ -144,7 +158,18 @@ export function PliantProvider({ manifestUrl, userId, baseUrl = "", onChange, ch
     if (showBefore) return [];
     return preview ? [...patches, preview] : patches;
   }, [patches, preview, showBefore]);
-  const resolved = useMemo(() => resolveProfile(active, { locks: manifest?.locks }), [active, manifest]);
+  const base = useMemo(() => resolveProfile(active, { locks: manifest?.locks }), [active, manifest]);
+  // Toggles the user has switched on contribute their effect on top of the resolved profile.
+  const resolved = useMemo(() => {
+    const out = { ...base, hidden: new Set(base.hidden), tokens: { ...base.tokens } };
+    for (const list of Object.values(base.toggles))
+      for (const t of list) {
+        if (!(toggleStates[t.key] ?? t.defaultOn)) continue;
+        if (t.effect.kind === "hide") out.hidden.add(t.effect.target);
+        else if (t.effect.kind === "token") out.tokens[t.effect.token] = t.effect.value;
+      }
+    return out;
+  }, [base, toggleStates]);
 
   const slotDataRef = useRef(slotData);
   slotDataRef.current = slotData;
@@ -255,7 +280,7 @@ export function PliantProvider({ manifestUrl, userId, baseUrl = "", onChange, ch
   const value: PliantCtx = {
     ready: !!manifest, error, manifest, userId, patches, resolved, preview, setPreview, showBefore, setShowBefore,
     panelOpen, setPanelOpen, slotData, registerSlotData, portalTargets, setPortalTarget, selections, setSelection,
-    activeFilters, toggleFilter, sorts, setSort, selectionSource, run, dismissRun: () => setRun(null), dialog,
+    activeFilters, toggleFilter, toggleStates, setToggle, sorts, setSort, selectionSource, run, dismissRun: () => setRun(null), dialog,
     runWorkflow: runWf, dryRun, customize, savePatch, togglePatch, deletePatch, movePatch, resetProfile, refreshProfile,
     notifyChanged: () => onChangeRef.current?.(),
   };

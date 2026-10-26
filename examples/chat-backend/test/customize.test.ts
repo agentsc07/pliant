@@ -61,3 +61,22 @@ describe("customize pipeline in mock mode (demo script)", () => {
     expect(r.verdict.reason).toMatch(/developer/);
   });
 });
+
+describe("new abilities in mock mode", () => {
+  it("toggle, grid, highlight rule, sort control and sidebar-on-top are allowed and validated", async () => {
+    const cases: [string, string][] = [
+      ["Add a toggle to show only unread groups", "addToggle"], ["Show my groups as a grid", "setLayout"],
+      ["Highlight groups with more than 100 unread", "addRule"], ["Add a sort button for name and unread", "addComponent"],
+      ["Move the sidebar to the top", "setToken"],
+    ];
+    for (const [req, op] of cases) {
+      const r = await ask(req);
+      expect(r.verdict.verdict, req).toBe("allow");
+      expect(r.patch.ops[0].op, req).toBe(op);
+    }
+  });
+  it("an unknown request is a neutral demo-limit note, not a policy refusal", async () => {
+    const r = await ask("make the buttons spin");
+    expect(r.verdict).toMatchObject({ verdict: "deny", note: "demo_limit" });
+  });
+});

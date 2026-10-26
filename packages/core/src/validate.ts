@@ -131,6 +131,30 @@ export function validatePatch(input: unknown, manifest: Manifest, ctx: ValidateC
         if (op.component && !catalog.includes(op.component)) errors.push(`${at}: component "${op.component}" is not in the catalog`);
         break;
       }
+      case "addToggle": {
+        if (!slotOk(op.slot)) errors.push(`${at}: unknown slot "${op.slot}"`);
+        const eff = op.effect;
+        if (eff.kind === "filter") { const e = checkExpr(eff.expr); if (e) errors.push(`${at}: ${e}`); }
+        else if (eff.kind === "hide") { const l = lockHit(eff.target); if (l) errors.push(`${at}: "${eff.target}" is locked (${l}) and cannot be hidden`); }
+        else {
+          if (manifest.locks.includes(eff.token)) errors.push(`${at}: token "${eff.token}" is locked`);
+          const err = tokenError(eff.token, eff.value);
+          if (err) errors.push(`${at}: ${err}`);
+        }
+        break;
+      }
+      case "setLayout": {
+        if (!slotOk(op.slot)) errors.push(`${at}: unknown slot "${op.slot}"`);
+        const l = lockHit(op.slot);
+        if (l) errors.push(`${at}: "${op.slot}" is locked (${l}) and cannot be changed`);
+        break;
+      }
+      case "addRule": {
+        if (!slotOk(op.slot)) errors.push(`${at}: unknown slot "${op.slot}"`);
+        const e = checkExpr(op.when);
+        if (e) errors.push(`${at}: when ${e}`);
+        break;
+      }
       case "addWorkflow":
         if (!workflowIds.has(op.workflow)) errors.push(`${at}: workflow "${op.workflow}" is not defined in this patch`);
         break;
@@ -166,6 +190,43 @@ export function describePatch(patch: Patch): string[] {
       case "addView": return `Add view "${op.title}" (${op.entity}${op.filter ? `: ${op.filter}` : ""})`;
       case "addFilter": return `Add filter "${op.label}" on ${op.slot}`;
       case "addWorkflow": return `Add workflow ${op.workflow}`;
+      case "addToggle": return `Add toggle "${op.label}" to ${op.slot}`;
+      case "setLayout": return `Lay out ${op.slot} as ${op.layout}${op.columns ? ` (${op.columns} columns)` : ""}`;
+      case "addRule": return `Style items on ${op.slot} when ${op.when}: ${op.style}`;
+    }
+  });
+}
+
+const nice = (id: string, labels?: Record<string, string>) =>
+  labels?.[id] ?? id.split(".").pop()!.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (c) => c.toUpperCase());
+const TOKEN_WORDS: Record<string, (v: string) => string> = {
+  fontScale: (v) => `Text size ${Math.round(Number(v) * 100)}%`,
+  density: (v) => `${v[0].toUpperCase()}${v.slice(1)} spacing`,
+  accent: (v) => `Accent colour ${v}`,
+  radius: (v) => `Corner radius ${v}`,
+  fontFamily: (v) => `${v[0].toUpperCase()}${v.slice(1)} font`,
+  navPosition: (v) => (v === "top" ? "Move the sidebar to the top" : "Keep the sidebar on the left"),
+};
+const exprWords = (e: string) => e.replace(/\s*(>=|<=|==|!=|>|<)\s*/g, " $1 ").replace(/\band\b/g, "and").trim();
+
+/** Plain-language summary of a patch for end users (no slot ids or op names). */
+export function explainPatch(patch: Patch, labels?: Record<string, string>): string[] {
+  return patch.ops.map((op) => {
+    switch (op.op) {
+      case "setTheme": return `Use ${op.theme} mode`;
+      case "setToken": return (TOKEN_WORDS[op.token]?.(op.value)) ?? `Set ${op.token} to ${op.value}`;
+      case "hide": return `Hide the ${nice(op.target, labels).toLowerCase()}`;
+      case "move": return `Move the ${nice(op.target, labels).toLowerCase()} to the ${nice(op.toSlot, labels).toLowerCase()}`;
+      case "resize": return `Make the ${nice(op.target, labels).toLowerCase()} ${op.size}`;
+      case "reorder": return `Sort the ${nice(op.slot, labels).toLowerCase()} by ${op.by.field} (${op.by.direction === "desc" ? "highest first" : "lowest first"})`;
+      case "addComponent": return op.component === "SortControl" ? `Add a sort control` : op.component === "SelectionBar" ? "Show a bar with bulk actions when items are selected" : `Add a ${op.component} to the ${nice(op.slot, labels).toLowerCase()}`;
+      case "enableSelection": return `Let me select ${op.mode === "multi" ? "several" : "one"} item${op.mode === "multi" ? "s" : ""} in the ${nice(op.slot, labels).toLowerCase()}`;
+      case "addView": return `Add a "${op.title}" tab${op.filter ? ` (${exprWords(op.filter)})` : ""}`;
+      case "addFilter": return `Add a "${op.label}" filter chip`;
+      case "addWorkflow": return `Add an action: ${op.workflow.replace(/^wf_/, "").replace(/_/g, " ")}`;
+      case "addToggle": return `Add a "${op.label}" switch`;
+      case "setLayout": return `Show the ${nice(op.slot, labels).toLowerCase()} as a ${op.layout === "grid" ? `grid${op.columns ? ` of ${op.columns} columns` : ""}` : op.layout === "row" ? "horizontal strip" : "list"}`;
+      case "addRule": return `${op.style === "highlight" ? "Highlight" : op.style === "dim" ? "Dim" : "Bold"} items where ${exprWords(op.when)}`;
     }
   });
 }

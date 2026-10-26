@@ -21,10 +21,11 @@ export function manifestSummary(m: Manifest, slots?: string[], catalog?: string[
 
 export const CLASSIFIER_SYSTEM = `You are the policy classifier for Pliant, a framework where end users customise an app by describing changes in natural language.
 Decide quickly whether a request can be fulfilled, and which layer it belongs to:
-L0 Look (theme, text size, colours, density) · L1 Layout (hide/move/resize panels, reorder lists) · L2 Views (new tabs, saved filters, read-only) · L3 Workflows (selection + batch actions, macros that call EXISTING capabilities) · L4 Capabilities (anything the backend cannot already do — never allowed).
+L0 Look (theme, text size, colours, density) · L1 Layout (hide/move/resize panels, reorder lists, grid/row layout) · L2 Views (new tabs, saved filters, toggles/switches, highlight rules, read-only) · L3 Workflows (selection + batch actions, macros that call EXISTING capabilities) · L4 Capabilities (anything the backend cannot already do — never allowed).
 Verdicts:
 - "deny" for L4 requests (reason: this needs the developer to add a capability), requests touching locked elements, batching a non-batchable capability, or exceeding a capability's maxFanOut (name the limit in the reason).
 - When denying only because of a fan-out limit, give a short "suggestion": a rephrased request the user could make instead (e.g. "Let me select up to 5 groups and send them a message").
+- "allow" toggles/switches, grid layouts and highlight rules (supported).
 - "allow" moving the sidebar/navigation to the top or horizontal (navPosition token), and adding sort controls — both are supported.
 - Keep "reason" to ONE or TWO short plain sentences addressed to the user ("you"), never a restatement of these rules.
 - "needs_clarification" if the request is ambiguous; ask one question in "reason".
@@ -45,8 +46,11 @@ Ops:
 - {"op":"enableSelection","slot":slot,"mode":"single"|"multi"}   (slot should be an entity slot such as chatList.items)
 - {"op":"addView","id":"snake_id","title":T,"entity":E,"filter":"unread > 50","columns":[fields]}  (filter fields must be readable entity fields)
 - {"op":"addFilter","slot":slot,"label":L,"expr":"unread > 50"}
+- {"op":"addToggle","slot":slot,"label":L,"defaultOn":false,"effect":{"kind":"filter","expr":"unread > 0"}}  a switch the user can flip any time; effect kind "filter" {expr} | "hide" {target} | "token" {token,value}. Use for "add a toggle/switch to …".
+- {"op":"setLayout","slot":"chatList.items","layout":"list"|"grid"|"row","columns":2}   (grid/row = cards; columns 1-4)
+- {"op":"addRule","slot":"chatList.items","when":"unread > 100","style":"highlight"|"dim"|"bold"}   style items matching a condition
 - {"op":"addWorkflow","workflow":workflowId}  — every workflow in "workflows" must also be added with this op.
-Each op has a minimum layer (setTheme/setToken L0; hide/move/resize/reorder L1; addView/addFilter L2; addComponent/enableSelection/addWorkflow L3); the patch "layer" must be at least the highest op layer.
+Each op has a minimum layer (setTheme/setToken L0; hide/move/resize/reorder/setLayout L1; addView/addFilter/addToggle/addRule L2; addComponent/enableSelection/addWorkflow L3); the patch "layer" must be at least the highest op layer.
 
 Workflows: {"id":"wf_snake","label":"Mute selected","input":{"from":"selection","entity":"group"},"steps":[...]}
 Steps: call{capability,args} · forEach{items:"input",concurrency?,cap?,do:[...]} · filter{items,where,into} · confirm{message,when?} · input{name,prompt,kind?} · if{cond,then,else?} · report · schedule{every:"1h",do:[...]}.
@@ -68,6 +72,9 @@ Example — "hide the stories bar and put pinned groups on top" needs TWO ops: {
 
 Example — "make the sidebar horizontal / move the sidebar to the top" is ONE op: {"layer":"L0","ops":[{"op":"setToken","token":"navPosition","value":"top"}],"workflows":[]}. Do NOT add unrelated ops (theme, resize) the user did not ask for.
 Example — "add a sort button for name and unread count" is {"layer":"L3","ops":[{"op":"addComponent","slot":"chatList.header","component":"SortControl","props":{"slot":"chatList.items","fields":["name","unread"]}}],"workflows":[]}.
+
+Example — "add a toggle to show only unread groups": {"layer":"L2","ops":[{"op":"addToggle","slot":"chatList.items","label":"Unread only","effect":{"kind":"filter","expr":"unread > 0"}}],"workflows":[]}.
+Example — "show my groups as a grid": {"layer":"L1","ops":[{"op":"setLayout","slot":"chatList.items","layout":"grid","columns":2}],"workflows":[]}.
 
 Only use slots, components, entities, fields and capabilities listed in the manifest summary. Prefer the smallest patch that satisfies the request.`;
 

@@ -123,6 +123,34 @@ const FIXTURES: Fixture[] = [
       reason: "This needs the developer to add a capability — Pliant can only combine what the backend can already do.",
     },
   },
+  { // 9 — new control: a switch
+    match: (q) => /toggle|switch/.test(q) && /unread/.test(q),
+    verdict: { verdict: "allow", layer: "L2", reason: "A switch you can flip any time to filter your list." },
+    patch: () => ({
+      layer: "L2",
+      ops: [{ op: "addToggle", slot: "chatList.items", label: "Unread only", effect: { kind: "filter", expr: "unread > 0" } }],
+    }),
+  },
+  { // 10 — layout
+    match: (q) => /grid/.test(q),
+    verdict: { verdict: "allow", layer: "L1", reason: "Showing your groups as a grid is a layout change." },
+    patch: () => ({ layer: "L1", ops: [{ op: "setLayout", slot: "chatList.items", layout: "grid", columns: 2 }] }),
+  },
+  { // 11 — rule
+    match: (q) => /highlight/.test(q) && /unread/.test(q),
+    verdict: { verdict: "allow", layer: "L2", reason: "Styling items that match a condition is a view change." },
+    patch: () => ({ layer: "L2", ops: [{ op: "addRule", slot: "chatList.items", when: "unread > 100", style: "highlight" }] }),
+  },
+  { // 12 — sort control
+    match: (q) => /sort/.test(q) && /(button|control|dropdown)/.test(q),
+    verdict: { verdict: "allow", layer: "L3", reason: "A sort control you can change any time." },
+    patch: () => ({ layer: "L3", ops: [{ op: "addComponent", slot: "chatList.header", component: "SortControl", props: { slot: "chatList.items", fields: ["name", "unread", "memberCount"] } }] }),
+  },
+  { // 13 — sidebar on top
+    match: (q) => /(side ?bar|navigation)/.test(q) && /(top|horizontal)/.test(q),
+    verdict: { verdict: "allow", layer: "L0", reason: "Moving the navigation is a look-and-feel change." },
+    patch: () => ({ layer: "L0", ops: [{ op: "setToken", token: "navPosition", value: "top" }] }),
+  },
 ];
 
 /** Deterministic stand-in for both models, keyed on the demo requests. For tests and offline demos. */
@@ -133,8 +161,8 @@ export class MockLLM implements LLM {
     const f = this.find(request);
     if (!f) {
       return {
-        verdict: "needs_clarification", layer: "L1", capabilitiesNeeded: [],
-        reason: "Mock mode only understands the demo requests (dark mode, hide stories, 50+ unread tab, select & mute/archive, …). For free-form requests, open \"Use your own model key\" in this panel and paste a free Groq, Gemini or OpenRouter key.",
+        verdict: "deny", layer: "L0", capabilitiesNeeded: [], note: "demo_limit",
+        reason: "This public demo uses a tiny built-in model that only knows the example requests below. To try anything you like, add your own free Groq, Gemini or OpenRouter key under \"Use your own model key\".",
       };
     }
     return { capabilitiesNeeded: [], ...f.verdict };

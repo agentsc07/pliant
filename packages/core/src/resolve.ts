@@ -12,7 +12,16 @@ export interface ResolvedView {
 }
 export interface ResolvedFilter { key: string; patchId: string; label: string; expr: string }
 
+export interface ResolvedToggle {
+  key: string; patchId: string; label: string; defaultOn: boolean;
+  effect: { kind: "filter"; expr: string } | { kind: "hide"; target: string } | { kind: "token"; token: string; value: string };
+}
+export interface ResolvedRule { key: string; patchId: string; when: string; style: "highlight" | "dim" | "bold" }
+
 export interface Resolved {
+  toggles: Record<string, ResolvedToggle[]>;
+  layouts: Record<string, { layout: "list" | "grid" | "row"; columns?: number }>;
+  rules: Record<string, ResolvedRule[]>;
   theme: "light" | "dark" | null;
   tokens: Record<string, string>;
   hidden: Set<string>;
@@ -27,7 +36,7 @@ export interface Resolved {
 }
 
 export function emptyResolved(): Resolved {
-  return { theme: null, tokens: {}, hidden: new Set(), moves: {}, sizes: {}, reorders: {}, components: {}, selection: {}, views: [], filters: {}, workflows: {} };
+  return { toggles: {}, layouts: {}, rules: {}, theme: null, tokens: {}, hidden: new Set(), moves: {}, sizes: {}, reorders: {}, components: {}, selection: {}, views: [], filters: {}, workflows: {} };
 }
 
 /**
@@ -60,6 +69,12 @@ export function resolveProfile(patches: Patch[], opts: { locks?: string[] } = {}
           break;
         case "addFilter": (r.filters[op.slot] ??= []).push({ key, patchId: p.id, label: op.label, expr: op.expr }); break;
         case "addWorkflow": break;
+        case "addToggle":
+          if (op.effect.kind === "hide" && locked(op.effect.target)) break;
+          (r.toggles[op.slot] ??= []).push({ key, patchId: p.id, label: op.label, defaultOn: !!op.defaultOn, effect: op.effect });
+          break;
+        case "setLayout": if (!locked(op.slot)) r.layouts[op.slot] = { layout: op.layout, columns: op.columns }; break;
+        case "addRule": (r.rules[op.slot] ??= []).push({ key, patchId: p.id, when: op.when, style: op.style }); break;
       }
     });
   }

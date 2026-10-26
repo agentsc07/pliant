@@ -5,7 +5,17 @@ export interface Group {
 export interface Message { id: number; groupId: string; userId: string; text: string; at: number }
 
 const BASE = (import.meta as any).env?.VITE_API ?? "http://localhost:4000";
-export const userId = new URLSearchParams(location.search).get("user") ?? "u1";
+function visitorId(): string {
+  const q = new URLSearchParams(location.search).get("user");
+  if (q) return q; // ?user=u2 etc. for the fixed demo users
+  const fresh = () => "v_" + Math.random().toString(36).slice(2, 12).padEnd(8, "0");
+  try {
+    let v = localStorage.getItem("groupy.visitor");
+    if (!v) { v = fresh(); localStorage.setItem("groupy.visitor", v); }
+    return v;
+  } catch { return fresh(); }
+}
+export const userId = visitorId();
 
 async function req<T>(method: string, path: string, body?: unknown): Promise<T> {
   const r = await fetch(BASE + path, {

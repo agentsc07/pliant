@@ -76,7 +76,8 @@ describe("demo 2 — L1 layout", () => {
     ] })];
     render(<TestApp />);
     await ready(); // logo still there despite a (bad) stored hide
-    expect(screen.queryByTestId("stories")).toBeNull();
+    await waitFor(() => expect(screen.queryByTestId("stories")).toBeNull()); // profile loads after the manifest
+    expect(screen.getByTestId("logo")).toBeTruthy();
     const rows = screen.getAllByTestId(/^row-/);
     expect(rows[0]).toHaveTextContent("Group 5");
   });
@@ -172,5 +173,35 @@ describe("layout + sort controls", () => {
     expect(order()[0]).toBe("Group 6");
     await userEvent.click(screen.getByTestId("sort-direction"));
     expect(order()[0]).toBe("Group 1");
+  });
+});
+
+describe("toggles, layouts and rules", () => {
+  it("a filter toggle hides non-matching rows until switched on", async () => {
+    patches = [P({ layer: "L2", ops: [{ op: "addToggle", slot: "chatList.items", label: "Busy only", effect: { kind: "filter", expr: "unread > 50" } }] })];
+    render(<TestApp />);
+    await ready();
+    expect(screen.getAllByTestId(/^row-/)).toHaveLength(6);
+    await userEvent.click(await screen.findByTestId("toggle-Busy only"));
+    expect(screen.getAllByTestId(/^row-/).length).toBeLessThan(6);
+    await userEvent.click(screen.getByTestId("toggle-Busy only"));
+    expect(screen.getAllByTestId(/^row-/)).toHaveLength(6);
+  });
+  it("setLayout wraps the slot content in a grid; addRule marks matching rows", async () => {
+    patches = [P({ layer: "L2", ops: [
+      { op: "setLayout", slot: "chatList.items", layout: "grid", columns: 3 },
+      { op: "addRule", slot: "chatList.items", when: "unread > 80", style: "highlight" },
+    ] })];
+    const { container } = render(<TestApp />);
+    await ready();
+    await waitFor(() => expect(container.querySelector(".pliant-layout[data-layout=grid]")).toBeTruthy());
+    expect(container.querySelectorAll(".pliant-rule-highlight").length).toBeGreaterThan(0);
+  });
+  it("a hide toggle can't touch locked elements", async () => {
+    patches = [P({ layer: "L2", ops: [{ op: "addToggle", slot: "chatList.items", label: "Hide logo", effect: { kind: "hide", target: "brand.logo" } }] })];
+    render(<TestApp />);
+    await ready();
+    expect(screen.queryByTestId("toggle-Hide logo")).toBeNull();
+    expect(screen.getByTestId("logo")).toBeTruthy();
   });
 });

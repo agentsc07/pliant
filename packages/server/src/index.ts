@@ -48,6 +48,8 @@ export interface PliantOptions {
   locks?: string[];
   invariants?: InvariantId[];
   customize?: CustomizeHandler;
+  examples?: string[];
+  labels?: Record<string, string>;
   /** Slot ids / component catalog the frontend registers; forwarded to validation. */
   slots?: string[];
   catalog?: string[];
@@ -70,6 +72,8 @@ export function createPliant(opts: PliantOptions) {
     dials: { L0: "open", L1: "open", L2: "open", L3: "restricted", L4: "locked", ...opts.dials },
     locks: opts.locks ?? [],
     invariants: opts.invariants ?? ["destructive-needs-confirm", "locked-visible", "external-shows-count"],
+    examples: opts.examples,
+    labels: opts.labels,
   });
 
   function capability<P extends z.ZodObject<any>>(def: CapabilityDef<P>) {

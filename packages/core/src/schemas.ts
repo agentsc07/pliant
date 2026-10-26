@@ -62,6 +62,10 @@ export const Manifest = z.object({
   dials: z.record(Layer, Dial),
   locks: z.array(z.string()),
   invariants: z.array(InvariantId),
+  /** Example requests the panel offers as one-click chips. */
+  examples: z.array(z.string()).optional(),
+  /** Human names for slot ids, used in previews ("chatList.stories" → "Stories bar"). */
+  labels: z.record(z.string()).optional(),
 });
 export type Manifest = z.infer<typeof Manifest>;
 
@@ -146,6 +150,20 @@ export const Op = z.discriminatedUnion("op", [
   }),
   z.object({ op: z.literal("addFilter"), slot: z.string(), label: z.string(), expr: z.string() }),
   z.object({ op: z.literal("addWorkflow"), workflow: z.string() }),
+  // A switch the user can flip any time. It applies a filter, hides something, or sets a design token while "on".
+  z.object({
+    op: z.literal("addToggle"),
+    slot: z.string(),
+    label: z.string(),
+    defaultOn: z.boolean().optional(),
+    effect: z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("filter"), expr: z.string() }),
+      z.object({ kind: z.literal("hide"), target: z.string() }),
+      z.object({ kind: z.literal("token"), token: z.string(), value: z.string() }),
+    ]),
+  }),
+  z.object({ op: z.literal("setLayout"), slot: z.string(), layout: z.enum(["list", "grid", "row"]), columns: z.number().int().min(1).max(4).optional() }),
+  z.object({ op: z.literal("addRule"), slot: z.string(), when: z.string(), style: z.enum(["highlight", "dim", "bold"]), label: z.string().optional() }),
 ]);
 export type Op = z.infer<typeof Op>;
 
@@ -161,6 +179,9 @@ export const OP_LAYER: Record<Op["op"], Layer> = {
   addComponent: "L3",
   enableSelection: "L3",
   addWorkflow: "L3",
+  addToggle: "L2",
+  setLayout: "L1",
+  addRule: "L2",
 };
 
 export const Patch = z.object({
@@ -185,5 +206,7 @@ export const Verdict = z.object({
   reason: z.string(),
   capabilitiesNeeded: z.array(z.string()).default([]),
   suggestion: z.string().optional(),
+  /** "demo_limit": the mock model only knows the example requests (not a policy refusal). */
+  note: z.enum(["demo_limit"]).optional(),
 });
 export type Verdict = z.infer<typeof Verdict>;

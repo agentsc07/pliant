@@ -110,3 +110,25 @@ describe("profile store", () => {
     expect(r.status).toBe(422);
   });
 });
+
+describe("visitor sessions", () => {
+  it("each visitor gets their own fresh copy; their messages and state stay private", async () => {
+    const a = "v_aaaa1111", b = "v_bbbb2222";
+    const ga = await json(await call("/groups", { user: a }));
+    expect(ga).toHaveLength(40);
+    await call("/groups/g1/pin", { method: "POST", user: a, body: JSON.stringify({ pinned: true }) });
+    await call("/groups/g1/messages", { method: "POST", user: a, body: JSON.stringify({ text: "only visitor a sees this" }) });
+    const seen = async (u: string) => (await json(await call("/groups/g1/messages", { user: u }))).map((m: any) => m.text);
+    expect(await seen(a)).toContain("only visitor a sees this");
+    expect(await seen(b)).not.toContain("only visitor a sees this");
+    expect(await seen("u1")).not.toContain("only visitor a sees this");
+    expect((await json(await call("/groups/g1", { user: b }))).pinned).toBe(false);
+    // seeded messages show up as the visitor's own (they are a clone of u1)
+    expect((await json(await call("/groups/g1/messages", { user: a }))).some((m: any) => m.userId === a)).toBe(true);
+  });
+
+  it("rejects malformed visitor ids (no accidental row creation)", async () => {
+    const r = await call("/groups", { user: "v_;drop table" });
+    expect((await json(r))).toEqual([]);
+  });
+});

@@ -17,7 +17,7 @@ export function App() {
   const active = groups.find((g) => g.id === activeId);
 
   return (
-    <div className="app">
+    <div className={"app" + (active ? " has-active" : "")}>
       <aside className="sidebar">
         <Header />
         <StoriesBar />
@@ -25,7 +25,7 @@ export function App() {
         <Footer />
       </aside>
       <main className="main">
-        {active ? <Conversation group={active} onChanged={refresh} /> : <div className="placeholder">Select a group to start chatting</div>}
+        {active ? <Conversation group={active} onChanged={refresh} onBack={() => setActiveId(null)} /> : <div className="placeholder"><b>No chat selected</b>Choose a group from the list.</div>}
       </main>
     </div>
   );

@@ -96,3 +96,26 @@ describe("validator: tokens", () => {
     expect(ok(patch({ layer: "L0", ops: [{ op: "setToken", token: "fontScale", value: "9" }] })).ok).toBe(false);
   });
 });
+
+describe("validator: toggles, layouts, rules", () => {
+  it("accepts a filter toggle, a grid layout and a highlight rule", () => {
+    expect(ok(patch({ layer: "L2", ops: [
+      { op: "addToggle", slot: "chatList.items", label: "Unread only", effect: { kind: "filter", expr: "unread > 0" } },
+      { op: "setLayout", slot: "chatList.items", layout: "grid", columns: 2 },
+      { op: "addRule", slot: "chatList.items", when: "unread > 100", style: "highlight" },
+    ] })).ok).toBe(true);
+  });
+  it("rejects a toggle that hides a locked element or sets a bad token", () => {
+    const r1 = ok(patch({ layer: "L2", ops: [{ op: "addToggle", slot: "chatList.items", label: "x", effect: { kind: "hide", target: "brand.logo" } }] }));
+    expect(r1.ok).toBe(false);
+    expect(r1.errors.join()).toMatch(/locked/);
+    expect(ok(patch({ layer: "L2", ops: [{ op: "addToggle", slot: "chatList.items", label: "x", effect: { kind: "token", token: "accent", value: "url(evil)" } }] })).ok).toBe(false);
+  });
+  it("rejects bad expressions and layout on a locked slot", () => {
+    expect(ok(patch({ layer: "L2", ops: [{ op: "addRule", slot: "chatList.items", when: "eval(1)", style: "dim" }] })).ok).toBe(false);
+    expect(ok(patch({ layer: "L1", ops: [{ op: "setLayout", slot: "brand.logo", layout: "grid" }] })).ok).toBe(false);
+  });
+  it("op layers are enforced (a toggle needs L2)", () => {
+    expect(ok(patch({ layer: "L1", ops: [{ op: "addToggle", slot: "chatList.items", label: "x", effect: { kind: "filter", expr: "unread > 0" } }] })).ok).toBe(false);
+  });
+});

@@ -5,7 +5,7 @@ import { createPliant, userIdOf, type CustomizeHandler } from "@pliant/server";
 import { openDb, seed, type Db } from "./db";
 
 export const SLOTS = [
-  "chatList.header", "chatList.stories", "chatList.items", "chatList.footer", "conversation.header", "conversation.messages",
+  "chatList.header", "chatList.stories", "chatList.items", "chatList.footer", "conversation.header", "conversation.messages", "conversation.composer",
 ];
 
 interface Row {
@@ -13,11 +13,15 @@ interface Row {
   unread: number; lastOpened: number | null; lastMessage: string | null; lastActivity: number | null; adminOnlyMute: number;
 }
 
+/** Visitor sessions (ids "v_…") are isolated: you only see seeded messages plus your own. */
+const VISIBLE_MSG = `(user_id NOT LIKE 'v\\_%' ESCAPE '\\' OR user_id = m.user_id)`;
+const MAX_VISITORS = 2000;
+
 const GROUP_SQL = `
   SELECT g.id, g.name, g.member_count AS memberCount, m.muted_until AS mutedUntil, m.archived, m.pinned, m.unread,
          m.last_opened AS lastOpened, g.admin_only_mute AS adminOnlyMute,
-         (SELECT text FROM messages WHERE group_id=g.id ORDER BY at DESC LIMIT 1) AS lastMessage,
-         (SELECT at FROM messages WHERE group_id=g.id ORDER BY at DESC LIMIT 1) AS lastActivity
+         (SELECT text FROM messages WHERE group_id=g.id AND ${VISIBLE_MSG} ORDER BY at DESC LIMIT 1) AS lastMessage,
+         (SELECT at FROM messages WHERE group_id=g.id AND ${VISIBLE_MSG} ORDER BY at DESC LIMIT 1) AS lastActivity
   FROM groups g JOIN memberships m ON m.group_id=g.id`;
 
 const toGroup = (r: Row, now: number) => ({
@@ -35,6 +39,20 @@ export function createApp(opts: { dbPath?: string; profileDbPath?: string; custo
     dbPath: opts.profileDbPath,
     customize: opts.customize,
     slots: SLOTS,
+    examples: [
+      "Dark mode, bigger text, and make the list compact",
+      "Hide the stories bar and put pinned groups on top",
+      "Give me a tab with only groups that have more than 50 unread",
+      "Let me select multiple groups and mute or archive them",
+      "Add a toggle to show only unread groups",
+      "Show my groups as a grid",
+      "Delete all groups I haven't opened in a month",
+    ],
+    labels: {
+      "chatList.header": "Header", "chatList.stories": "Stories bar", "chatList.items": "Group list", "chatList.footer": "Footer",
+      "conversation.header": "Chat header", "conversation.messages": "Messages", "conversation.composer": "Message box",
+      "brand.logo": "Logo", "legal.footer": "Legal footer", "billing.price": "Price badge",
+    },
     catalog: [...BUILTIN_COMPONENTS, "GroupRow"],
     entities: [
       { id: "group", fields: { name: "string", unread: "number", pinned: "boolean", muted: "boolean", archived: "boolean", memberCount: "number", lastActivity: "number", lastOpened: "number" }, relations: [{ kind: "hasMany", entity: "message" }] },
@@ -47,6 +65,20 @@ export function createApp(opts: { dbPath?: string; profileDbPath?: string; custo
 
   const app = express();
   app.use(express.json());
+  // A visitor id is a throwaway session: clone u1's groups so each visitor gets their own fresh copy of the demo.
+  app.use((req, res, next) => {
+    const id = userIdOf(req);
+    if (!/^v_[a-z0-9]{4,20}$/.test(id)) return next();
+    if (!db.prepare("SELECT 1 FROM users WHERE id=?").get(id)) {
+      if ((db.prepare("SELECT COUNT(*) AS n FROM users WHERE id LIKE 'v\\_%' ESCAPE '\\'").get() as { n: number }).n >= MAX_VISITORS)
+        return void res.status(429).json({ error: "demo_full", message: "The demo is busy. Please try again later." });
+      db.transaction(() => {
+        db.prepare("INSERT INTO users VALUES (?,?)").run(id, "You");
+        db.prepare("INSERT INTO memberships SELECT ?, group_id, NULL, 0, pinned, unread, last_opened FROM memberships WHERE user_id='u1'").run(id);
+      })();
+    }
+    next();
+  });
   app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Headers", "content-type,x-user-id,x-pliant-run");
@@ -136,7 +168,10 @@ export function createApp(opts: { dbPath?: string; profileDbPath?: string; custo
     route: { method: "GET", path: "/groups/:groupId/messages" }, params: G,
     handler: (p, req) => {
       need(req, p.groupId);
-      return db.prepare("SELECT id, group_id AS groupId, user_id AS userId, text, at FROM messages WHERE group_id=? ORDER BY at").all(p.groupId);
+      const me = userIdOf(req);
+      const rows = db.prepare(`SELECT id, group_id AS groupId, user_id AS userId, text, at FROM messages m WHERE group_id=? AND (user_id NOT LIKE 'v\\_%' ESCAPE '\\' OR user_id=?) ORDER BY at`).all(p.groupId, me) as { userId: string }[];
+      // A visitor is a clone of u1, so u1's seeded messages show as theirs.
+      return me.startsWith("v_") ? rows.map((r) => (r.userId === "u1" ? { ...r, userId: me } : r)) : rows;
     },
   });
   pliant.capability({

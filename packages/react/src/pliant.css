@@ -70,3 +70,24 @@ button.link { border: 0; background: none; text-align: left; text-decoration: un
 .pliant-hint { font-size: 0.8em; opacity: 0.7; margin: 0.4em 0 0; }
 .pliant-byok { margin: 0.6em 0; font-size: 0.85em; }
 .pliant-byok summary { cursor: pointer; opacity: 0.85; }
+
+/* ---- toggles, layouts, rules ---- */
+.pliant-toggles { display: flex; flex-wrap: wrap; gap: 0.4em 1.2em; padding: 0.4em 1em; font-size: 0.88em; }
+.pliant-toggle { display: inline-flex; align-items: center; gap: 0.6em; cursor: pointer; }
+.pliant-switch { position: relative; width: 2.6em; height: 1.55em; padding: 0; border-radius: 99px; background: color-mix(in srgb, var(--muted, #888) 40%, transparent); transition: background 200ms; flex: none; }
+.pliant-switch.on { background: var(--accent, #0a7cff); }
+.pliant-switch i { position: absolute; top: 0.125em; left: 0.125em; width: 1.3em; height: 1.3em; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 30%); transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1); }
+.pliant-switch.on i { transform: translateX(1.05em); }
+.pliant-switch:active i { width: 1.6em; }
+.pliant-layout { display: contents; }
+.pliant-layout[data-layout="grid"] [data-layout-target] { display: grid; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); gap: 0.5em; padding: 0.5em 0.8em; align-content: start; }
+.pliant-layout[data-layout="grid"] [data-layout-target] > * { border: 1px solid var(--border, #ddd); border-radius: var(--radius, 12px); overflow: hidden; background: var(--bg-alt, #f5f5f7); }
+.pliant-layout[data-layout="row"] [data-layout-target] { display: flex; flex-direction: row; overflow-x: auto; gap: 0.5em; padding: 0.5em 0.8em; }
+.pliant-layout[data-layout="row"] [data-layout-target] > * { flex: 0 0 15em; border: 1px solid var(--border, #ddd); border-radius: var(--radius, 12px); background: var(--bg-alt, #f5f5f7); }
+.pliant-rule-highlight { background: color-mix(in srgb, var(--accent, #0a7cff) 14%, transparent) !important; box-shadow: inset 3px 0 0 var(--accent, #0a7cff); }
+.pliant-rule-dim { opacity: 0.45; }
+.pliant-rule-bold .group-name, .pliant-rule-bold { font-weight: 800; }
+.pliant-ruled { display: contents; }
+.pliant-ruled.pliant-rule-highlight > * { background: color-mix(in srgb, var(--accent, #0a7cff) 14%, transparent); box-shadow: inset 3px 0 0 var(--accent, #0a7cff); }
+.pliant-ruled.pliant-rule-dim > * { opacity: 0.45; }
+.pliant-ruled.pliant-rule-bold > * .group-name { font-weight: 800; }

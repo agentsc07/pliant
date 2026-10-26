@@ -5,7 +5,7 @@ export function StoriesBar() {
     <div className="stories" data-testid="stories">
       {STORIES.map((n) => (
         <div key={n} className="story">
-          <div className="story-ring">{n[0]}</div>
+          <div className="story-ring"><span>{n[0]}</span></div>
           <span>{n}</span>
         </div>
       ))}

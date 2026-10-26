@@ -60,12 +60,14 @@ export function Slot({ id, entity, data, locked, children }: SlotProps) {
     if (!data) return undefined;
     let out = data;
     for (const f of filters) if (activeKeys.includes(f.key)) out = out.filter((i) => safeBool(f.expr, i));
+    for (const t of resolved.toggles[id] ?? [])
+      if (t.effect.kind === "filter" && (p.toggleStates[t.key] ?? t.defaultOn)) { const ex = t.effect.expr; out = out.filter((i) => safeBool(ex, i)); }
     const ro = resolved.reorders[id];
     if (ro) out = [...out].sort(compare(ro.field, ro.direction));
     const so = p.sorts[id];
     if (so) out = [...out].sort(compare(so.field, so.direction));
     return out;
-  }, [data, filters, activeKeys, resolved.reorders, p.sorts, id]);
+  }, [data, filters, activeKeys, resolved.reorders, resolved.toggles, p.toggleStates, p.sorts, id]);
 
   if (resolved.hidden.has(id) && !locked) return null;
 
@@ -80,6 +82,8 @@ export function Slot({ id, entity, data, locked, children }: SlotProps) {
   const added = (resolved.components[id] ?? []).filter((c) => !c.showWhen || safeBool(c.showWhen, { selection: sel }));
 
   const move = resolved.moves[id];
+  const toggles = resolved.toggles[id] ?? [];
+  const layout = resolved.layouts[id];
   const size = resolved.sizes[id];
 
   const content = (
@@ -95,7 +99,22 @@ export function Slot({ id, entity, data, locked, children }: SlotProps) {
             ))}
           </div>
         )}
-        {child}
+        {toggles.length > 0 && (
+          <div className="pliant-toggles" data-testid={`toggles-${id}`}>
+            {toggles.map((t) => {
+              const on = p.toggleStates[t.key] ?? t.defaultOn;
+              return (
+                <label key={t.key} className="pliant-toggle">
+                  <span>{t.label}</span>
+                  <button role="switch" aria-checked={on} aria-label={t.label} className={"pliant-switch" + (on ? " on" : "")} data-testid={`toggle-${t.label}`} onClick={() => p.setToggle(t.key, !on)}><i /></button>
+                </label>
+              );
+            })}
+          </div>
+        )}
+        {layout && layout.layout !== "list" ? (
+          <div className="pliant-layout" data-layout={layout.layout} style={{ ["--cols" as any]: layout.columns ?? 2 }}>{child}</div>
+        ) : child}
         {added.map((c) => <RenderComponent key={c.key} component={c.component} props={c.props} slotId={id} />)}
         <div className="pliant-moved-in" ref={targetRef} />
       </div>
@@ -112,11 +131,16 @@ export function Slot({ id, entity, data, locked, children }: SlotProps) {
 /** Wrap one row/card of an entity list so users can select it when selection is enabled on the slot. */
 export function Item({ id, children }: { id: string; children: ReactNode }) {
   const s = useContext(SlotContext);
-  if (!s || !s.mode) return <>{children}</>;
+  const p = usePliant();
+  // addRule: style items whose data matches (highlight / dim / bold). Safe expressions only.
+  const rules = s ? p.resolved.rules[s.slotId] ?? [] : [];
+  const data = rules.length ? p.slotData[s!.slotId]?.items.find((i: any) => String(i.id) === id) : undefined;
+  const hit = data ? rules.filter((r) => safeBool(r.when, data)).map((r) => `pliant-rule-${r.style}`).join(" ") : "";
+  if (!s || !s.mode) return hit ? <div className={"pliant-ruled " + hit}>{children}</div> : <>{children}</>;
   const checked = s.selected.includes(id);
   return (
     <div
-      className={"pliant-item" + (checked ? " selected" : "")} data-testid={`item-${id}`}
+      className={"pliant-item" + (checked ? " selected" : "") + (hit ? " " + hit : "")} data-testid={`item-${id}`}
       onClickCapture={(e) => {
         if ((e.target as HTMLElement).closest("input")) return;
         e.stopPropagation(); e.preventDefault(); s.toggle(id);
