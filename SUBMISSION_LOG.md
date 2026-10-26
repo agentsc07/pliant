@@ -27,3 +27,6 @@
 
 ## Fix — Node version mismatch
 - better-sqlite3 13 only supports Node ≥ 22, but the owner's shell runs Node 20.20.2 → native-module segfault (exit 139) when running the eval/tests. **Decision:** pinned `better-sqlite3@^12.11.1` (supports Node 20–26). After switching Node versions run `pnpm rebuild better-sqlite3`.
+
+## Decision — hosted evaluation skipped
+- Owner chose MVP scope: no hosted-model evaluation. Column marked "not run" in docs/eval/README.md. Groq default model updated (llama-3.3-70b-versatile was retired 2026-08-16) and 429 retry added.
