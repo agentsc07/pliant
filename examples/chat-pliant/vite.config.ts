@@ -11,10 +11,11 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use((req, _res, next) => {
           if (req.url === "/compare" || req.url?.startsWith("/compare?")) req.url = req.url.replace("/compare", "/compare.html");
+          if (req.url === "/dev" || req.url?.startsWith("/dev?")) req.url = req.url.replace("/dev", "/dev.html");
           next();
         });
       },
     },
   ],
-  build: { rollupOptions: { input: { main: resolve(__dirname, "index.html"), compare: resolve(__dirname, "compare.html") } } },
+  build: { rollupOptions: { input: { main: resolve(__dirname, "index.html"), compare: resolve(__dirname, "compare.html"), dev: resolve(__dirname, "dev.html") } } },
 });

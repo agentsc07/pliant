@@ -104,10 +104,11 @@ export function Slot({ id, entity, data, locked, children }: SlotProps) {
             {toggles.map((t) => {
               const on = p.toggleStates[t.key] ?? t.defaultOn;
               return (
-                <label key={t.key} className="pliant-toggle">
-                  <span>{t.label}</span>
+                // A div, not a <label>: a label around a button re-dispatches the click and the switch would flip twice.
+                <div key={t.key} className="pliant-toggle">
+                  <span onClick={() => p.setToggle(t.key, !on)}>{t.label}</span>
                   <button role="switch" aria-checked={on} aria-label={t.label} className={"pliant-switch" + (on ? " on" : "")} data-testid={`toggle-${t.label}`} onClick={() => p.setToggle(t.key, !on)}><i /></button>
-                </label>
+                </div>
               );
             })}
           </div>

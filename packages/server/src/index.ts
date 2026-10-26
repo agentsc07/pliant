@@ -40,6 +40,27 @@ export interface CustomizeHandler {
   }): Promise<CustomizeResult>;
 }
 
+/** Per-visitor developer sandbox: changes apply to that session only, never to other users. */
+export interface DevOverrides {
+  dials?: Partial<Record<Layer, Dial>>;
+  locks?: string[];
+  policies?: Record<string, Partial<Policy>>;
+}
+export interface AuditEntry {
+  at: number; request: string; verdict: string; layer: string; reason: string; ops: string[]; errors: string[]; ms: number; ownKey: boolean;
+}
+const DevOverridesSchema = z.object({
+  dials: z.record(z.enum(["L0", "L1", "L2", "L3", "L4"]), z.enum(["open", "restricted", "locked"])).optional(),
+  locks: z.array(z.string().max(80)).max(60).optional(),
+  policies: z.record(z.object({
+    batchable: z.boolean().optional(), maxFanOut: z.number().int().positive().max(1000).nullable().optional(),
+    requiresConfirm: z.boolean().optional(),
+    rateLimit: z.object({ count: z.number().int().positive().max(10000), perSeconds: z.number().int().positive().max(86400) }).nullable().optional(),
+    schedulable: z.boolean().optional(),
+  })).optional(),
+});
+const MAX_SANDBOXES = 5000, MAX_AUDIT = 100;
+
 export interface PliantOptions {
   app: string;
   dbPath?: string;
@@ -53,6 +74,8 @@ export interface PliantOptions {
   /** Slot ids / component catalog the frontend registers; forwarded to validation. */
   slots?: string[];
   catalog?: string[];
+  /** Mount /__pliant/dev/* (config sandbox + audit log). Default true; every change is scoped to the calling session. */
+  devConsole?: boolean;
 }
 
 export function userIdOf(req: Request): string {
@@ -65,16 +88,25 @@ export function createPliant(opts: PliantOptions) {
   const store = new ProfileStore(opts.dbPath);
   const enforcer = new Enforcer();
 
-  const manifest = (): Manifest => ({
+  const overrides = new Map<string, DevOverrides>();
+  const audit = new Map<string, AuditEntry[]>();
+  const remember = <T,>(m: Map<string, T>, k: string, v: T) => { m.delete(k); m.set(k, v); if (m.size > MAX_SANDBOXES) m.delete(m.keys().next().value as string); };
+
+  const policyFor = (userId: string | undefined, c: CapabilityManifest): Policy => ({ ...c.policy, ...((userId && overrides.get(userId)?.policies?.[c.id]) || {}) } as Policy);
+
+  const manifest = (userId?: string): Manifest => {
+    const o = userId ? overrides.get(userId) : undefined;
+    return ({
     app: opts.app,
-    capabilities: caps,
+    capabilities: o?.policies ? caps.map((c) => ({ ...c, policy: policyFor(userId, c) })) : caps,
     entities: opts.entities ?? [],
-    dials: { L0: "open", L1: "open", L2: "open", L3: "restricted", L4: "locked", ...opts.dials },
-    locks: opts.locks ?? [],
+    dials: { L0: "open", L1: "open", L2: "open", L3: "restricted", L4: "locked", ...opts.dials, ...o?.dials },
+    locks: o?.locks ?? opts.locks ?? [],
     invariants: opts.invariants ?? ["destructive-needs-confirm", "locked-visible", "external-shows-count"],
     examples: opts.examples,
     labels: opts.labels,
-  });
+    });
+  };
 
   function capability<P extends z.ZodObject<any>>(def: CapabilityDef<P>) {
     const policy: Policy = { ...defaultPolicy(def.effect), ...def.policy };
@@ -87,8 +119,10 @@ export function createPliant(opts: PliantOptions) {
       try {
         // Enforcement happens on the server regardless of what the client claims.
         const runId = req.header("x-pliant-run")?.split(";")[0].trim() || undefined;
+        const uid = userIdOf(req);
+        const eff = policyFor(uid, { id: def.id, policy } as CapabilityManifest);
         const denial = enforcer.check({
-          userId: userIdOf(req), capId: def.id, maxFanOut: policy.maxFanOut, rateLimit: policy.rateLimit,
+          userId: uid, capId: def.id, maxFanOut: eff.maxFanOut, rateLimit: eff.rateLimit,
           runId,
         });
         if (denial) return void res.status(denial.status).json({ error: denial.error, message: denial.message });
@@ -104,7 +138,7 @@ export function createPliant(opts: PliantOptions) {
   // ----- /__pliant routes -----
   const p = express.Router();
   p.use(express.json());
-  p.get("/manifest", (_req, res) => res.json(manifest()));
+  p.get("/manifest", (req, res) => res.json(manifest(userIdOf(req))));
 
   p.post("/run", (req, res) => {
     const body = z.object({ workflowId: z.string(), fanOut: z.number().int().nonnegative() }).safeParse(req.body);
@@ -115,7 +149,7 @@ export function createPliant(opts: PliantOptions) {
 
   p.get("/profile/:userId", (req, res) => res.json({ userId: req.params.userId, patches: store.list(req.params.userId) }));
   p.put("/profile/:userId/patches/:id", (req, res) => {
-    const v = validatePatch({ ...req.body, id: req.params.id }, manifest(), {
+    const v = validatePatch({ ...req.body, id: req.params.id }, manifest(req.params.userId), {
       slots: opts.slots, catalog: opts.catalog,
       knownWorkflowIds: store.list(req.params.userId).flatMap((x) => x.workflows.map((w) => w.id)),
     });
@@ -142,12 +176,42 @@ export function createPliant(opts: PliantOptions) {
       const userId = userIdOf(req);
       const key = req.header("x-pliant-llm-key");
       const byok = key ? { provider: req.header("x-pliant-llm-provider") ?? "", apiKey: key, model: req.header("x-pliant-llm-model") || undefined } : undefined;
-      res.json(await opts.customize({ request: body.data.request, userId, manifest: manifest(), profile: store.list(userId), slots: opts.slots, catalog: opts.catalog, byok }));
+      const t0 = Date.now();
+      const result = await opts.customize({ request: body.data.request, userId, manifest: manifest(userId), profile: store.list(userId), slots: opts.slots, catalog: opts.catalog, byok });
+      const log = [...(audit.get(userId) ?? []), {
+        at: t0, request: body.data.request.slice(0, 300), verdict: result.verdict.verdict, layer: result.verdict.layer, reason: result.verdict.reason.slice(0, 300),
+        ops: result.patch?.ops.map((o) => o.op) ?? [], errors: (result.errors ?? []).slice(0, 5), ms: Date.now() - t0, ownKey: !!byok,
+      } satisfies AuditEntry].slice(-MAX_AUDIT);
+      remember(audit, userId, log);
+      res.json(result);
     } catch (e) { next(e); }
   });
 
+  if (opts.devConsole !== false) {
+    p.get("/dev/config", (req, res) => {
+      const uid = userIdOf(req);
+      res.json({
+        app: opts.app, slots: opts.slots ?? [], catalog: opts.catalog ?? [], labels: opts.labels ?? {},
+        manifest: manifest(uid), defaults: { dials: manifest().dials, locks: opts.locks ?? [], policies: Object.fromEntries(caps.map((c) => [c.id, c.policy])) },
+        overrides: overrides.get(uid) ?? {},
+      });
+    });
+    p.put("/dev/config", (req, res) => {
+      const body = DevOverridesSchema.safeParse(req.body);
+      if (!body.success) return void res.status(400).json({ error: "bad_config", issues: body.error.issues });
+      const known = new Set(caps.map((c) => c.id));
+      const unknown = Object.keys(body.data.policies ?? {}).filter((k) => !known.has(k));
+      if (unknown.length) return void res.status(400).json({ error: "unknown_capability", message: `Unknown capability: ${unknown.join(", ")}` });
+      remember(overrides, userIdOf(req), body.data);
+      res.json({ ok: true, manifest: manifest(userIdOf(req)) });
+    });
+    p.delete("/dev/config", (req, res) => { overrides.delete(userIdOf(req)); res.json({ ok: true }); });
+    p.get("/dev/audit", (req, res) => res.json({ entries: audit.get(userIdOf(req)) ?? [] }));
+    p.delete("/dev/audit", (req, res) => { audit.delete(userIdOf(req)); res.json({ ok: true }); });
+  }
+
   router.use("/__pliant", p);
 
-  return { router, capability, manifest, store, enforcer };
+  return { router, capability, manifest: (userId?: string) => manifest(userId), store, enforcer };
 }
 export type Pliant = ReturnType<typeof createPliant>;

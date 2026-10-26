@@ -15,7 +15,8 @@ pnpm demo                      # builds both frontends, serves everything on htt
 docker build -t pliant-demo . && docker run -p 4000:4000 pliant-demo
 ```
 - `/` Pliant app · `/classic/` plain app · `/compare` side by side · `/compare?view=users` three users, three UIs
-- Add `?user=u2` or `?user=u3` for another seeded user.
+- `/dev` developer console (layer dials, locks, capability limits, try-it box, audit log, safety demo). Changes apply to your session only.
+- Every browser gets its own throwaway session (`v_…` id in localStorage) with a fresh copy of the data. Add `?user=u2` / `?user=u3` for the fixed seeded users.
 - Mock studio by default (`PLIANT_MOCK=1`, free, offline); SQLite is in-memory and reseeds on every boot.
 
 ## Dev mode (hot reload, 3 ports)

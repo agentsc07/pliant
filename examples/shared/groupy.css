@@ -34,12 +34,12 @@ select { padding-right: 1.6em; }
 .placeholder b { display: block; font-size: 1.2em; color: var(--fg); margin-bottom: 0.2em; letter-spacing: -0.01em; }
 
 /* Large title header on a translucent layer */
-.header { display: flex; align-items: center; justify-content: space-between; padding: 0.9em 1em 0.5em; gap: 0.5em; flex-wrap: wrap; position: sticky; top: 0; z-index: 2; background: var(--glass); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); }
+.header { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 0.9em 1em 0.5em; gap: 0.5em; flex-wrap: wrap; position: sticky; top: 0; z-index: 2; background: var(--glass); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); }
 .logo { font-weight: 700; font-size: 1.7em; letter-spacing: -0.03em; line-height: 1.1; color: var(--fg); white-space: nowrap; }
 .price { font-size: 0.72em; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 99px; padding: 0.2em 0.7em; white-space: nowrap; font-weight: 600; }
 .header button { white-space: nowrap; }
 
-.stories { display: flex; gap: 0.9em; padding: 0.6em 1em 0.8em; overflow-x: auto; scrollbar-width: none; }
+.stories { flex: none; display: flex; gap: 0.9em; padding: 0.6em 1em 0.8em; overflow-x: auto; scrollbar-width: none; }
 .stories::-webkit-scrollbar { display: none; }
 .story { display: flex; flex-direction: column; align-items: center; font-size: 0.7em; color: var(--muted); gap: 0.3em; flex: none; }
 .story-ring { width: 3.6em; height: 3.6em; border-radius: 50%; padding: 2px; background: conic-gradient(from 200deg, var(--accent), color-mix(in srgb, var(--accent) 35%, #ff9f0a), var(--accent)); display: grid; place-items: center; }

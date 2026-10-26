@@ -1,5 +1,5 @@
-import { describePatch, type Patch } from "@pliant/core";
-import { useEffect, useState } from "react";
+import { describePatch, explainPatch, type Patch } from "@pliant/core";
+import { useEffect, useRef, useState } from "react";
 import type { CustomizeResponse, LlmKey } from "./api";
 import { usePliant } from "./context";
 
@@ -29,6 +29,9 @@ export function CustomizePanel() {
   const [dry, setDry] = useState<string[] | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [llm, setLlm] = useState(loadKey);
+  const [elapsed, setElapsed] = useState(0);
+  const abort = useRef<AbortController | null>(null);
+  const [undo, setUndo] = useState<{ id: string; text: string } | null>(null);
   const [reply, setReply] = useState("");
   const [asked, setAsked] = useState("");
 
@@ -38,12 +41,15 @@ export function CustomizePanel() {
   async function submit(request = text, original = request) {
     if (!request.trim()) return;
     setAsked(original); setReply("");
-    setBusy(true); setErr(null); setRes(null); setDry(null); p.setPreview(null);
+    setBusy(true); setErr(null); setRes(null); setDry(null); setUndo(null); p.setPreview(null); setElapsed(0);
+    const ctl = new AbortController(); abort.current = ctl;
+    const t0 = Date.now(); const tick = setInterval(() => setElapsed(Math.round((Date.now() - t0) / 1000)), 500);
     try {
-      const r = await p.customize(request, llm.apiKey ? { provider: llm.provider, apiKey: llm.apiKey, model: llm.model } : undefined);
+      const r = await p.customize(request, llm.apiKey ? { provider: llm.provider, apiKey: llm.apiKey, model: llm.model } : undefined, ctl.signal);
       setRes(r);
       if (r.verdict.verdict === "allow" && r.patch) p.setPreview(r.patch);
-    } catch (e) { setErr((e as Error).message); }
+    } catch (e) { if ((e as Error).name !== "AbortError") setErr((e as Error).message); }
+    clearInterval(tick); abort.current = null;
     setBusy(false);
   }
 
@@ -66,6 +72,7 @@ export function CustomizePanel() {
     if (!res?.patch) return;
     try {
       await p.savePatch(res.patch);
+      setUndo({ id: res.patch.id, text: res.patch.request });
       p.setPreview(null); p.setShowBefore(false); setRes(null); setText(""); setDry(null);
     } catch (e) { setErr((e as Error).message); }
   }
@@ -91,7 +98,11 @@ export function CustomizePanel() {
           value={text} onChange={(e) => setText(e.target.value)} rows={3} data-testid="customize-input"
           placeholder='Describe what you want, e.g. "dark mode, bigger text"'
         />
-        <button type="submit" className="primary" disabled={busy || !text.trim()} data-testid="customize-submit">{busy ? "Thinking…" : "Customize"}</button>
+        <div className="pliant-row">
+          <button type="submit" className="primary" disabled={busy || !text.trim()} data-testid="customize-submit">{busy ? `Working… ${elapsed}s` : "Customize"}</button>
+          {busy && <button type="button" onClick={() => abort.current?.abort()} data-testid="customize-cancel">Cancel</button>}
+        </div>
+        {busy && elapsed > 8 && <p className="pliant-hint">Slower models can take a minute. You can cancel and try something simpler.</p>}
       </form>
 
       <details className="pliant-byok" data-testid="byok">
@@ -109,13 +120,29 @@ export function CustomizePanel() {
 
       <p className="pliant-hint">You can change: look (theme, text size, colours, density, nav bar left/top), layout (hide, move, resize, sort), views and filters, and selection with bulk actions. Backend-level features need the developer.</p>
 
+      {!busy && !res?.patch && (p.manifest?.examples?.length ?? 0) > 0 && (
+        <div className="pliant-examples" data-testid="examples">
+          <span className="pliant-hint">Try:</span>
+          {p.manifest!.examples!.map((ex) => (
+            <button key={ex} className="pliant-example" onClick={() => { setText(ex); submit(ex); }}>{ex}</button>
+          ))}
+        </div>
+      )}
+
+      {undo && (
+        <div className="pliant-note ok" role="status" data-testid="applied">
+          Applied ✓ <span className="pliant-muted">“{undo.text.slice(0, 50)}{undo.text.length > 50 ? "…" : ""}”</span>
+          <button className="link" onClick={() => { p.deletePatch(undo.id); setUndo(null); }} data-testid="undo">Undo</button>
+        </div>
+      )}
+
       {err && <div className="pliant-note bad" role="alert" data-testid="customize-error">{err}</div>}
 
       {v && (
-        <div className={"pliant-verdict " + v.verdict} data-testid="verdict" data-verdict={v.verdict}>
+        <div className={"pliant-verdict " + (v.note === "demo_limit" ? "info" : v.verdict)} data-testid="verdict" data-verdict={v.verdict}>
           <div className="pliant-verdict-head">
             <span className="pliant-chip on">{v.layer} · {LAYER_NAMES[v.layer]}</span>
-            <strong>{v.verdict === "allow" ? "Looks good" : v.verdict === "deny" ? "Can't do that" : "Quick question"}</strong>
+            <strong>{v.verdict === "allow" ? "Looks good" : v.note === "demo_limit" ? "Demo model" : v.verdict === "deny" ? "Can't do that" : "Quick question"}</strong>
           </div>
           <p data-testid="verdict-reason">{v.reason}</p>
           {v.verdict === "needs_clarification" && (
@@ -144,7 +171,7 @@ export function CustomizePanel() {
       {res?.patch && (
         <div className="pliant-preview" data-testid="preview">
           <h3>Preview</h3>
-          <ul data-testid="preview-changes">{describePatch(res.patch).map((l, i) => <li key={i}>{l}</li>)}</ul>
+          <ul data-testid="preview-changes">{explainPatch(res.patch, p.manifest?.labels).map((l, i) => <li key={i}>{l}</li>)}</ul>
           {res.warnings?.map((w, i) => <div key={i} className="pliant-note">{w}</div>)}
           <div className="pliant-row">
             <button onMouseDown={() => p.setShowBefore(true)} onMouseUp={() => p.setShowBefore(false)} onMouseLeave={() => p.setShowBefore(false)}
@@ -185,7 +212,7 @@ function PatchList({ open, setOpen }: { open: string | null; setOpen: (id: strin
               <button onClick={() => p.movePatch(pt.id, 1)} disabled={i === p.patches.length - 1} aria-label="Move down">↓</button>
               <button onClick={() => p.deletePatch(pt.id)} aria-label="Delete" data-testid={`delete-${pt.id}`}>🗑</button>
             </div>
-            {open === pt.id && <ul className="pliant-changes">{describePatch(pt).map((l, k) => <li key={k}>{l}</li>)}</ul>}
+            {open === pt.id && <ul className="pliant-changes">{explainPatch(pt, p.manifest?.labels).map((l, k) => <li key={k}>{l}</li>)}</ul>}
           </li>
         ))}
       </ul>

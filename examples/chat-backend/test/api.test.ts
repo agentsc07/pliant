@@ -132,3 +132,32 @@ describe("visitor sessions", () => {
     expect((await json(r))).toEqual([]);
   });
 });
+
+describe("developer sandbox", () => {
+  it("per-session policy overrides apply only to that session and are enforced server-side", async () => {
+    const dev = "v_dev00001", other = "v_dev00002";
+    const put = await call("/__pliant/dev/config", { method: "PUT", user: dev, body: JSON.stringify({ policies: { "message.send": { maxFanOut: 1 } } }) });
+    expect(put.status).toBe(200);
+    const run = await newRun("wf", 5, dev);
+    const send = (u: string, g: string, r?: string) => call(`/groups/${g}/messages`, { method: "POST", user: u, run: r, body: JSON.stringify({ text: "hi" }) });
+    expect((await send(dev, "g1", run)).status).toBe(200);
+    expect((await send(dev, "g2", run)).status).toBe(403); // tightened to 1 per run for this session
+    const run2 = await newRun("wf", 5, other);
+    for (const g of ["g1", "g2", "g3"]) expect((await send(other, g, run2)).status).toBe(200); // untouched
+    const m = await json(await call("/__pliant/manifest", { user: dev }));
+    expect(m.capabilities.find((c: any) => c.id === "message.send").policy.maxFanOut).toBe(1);
+    const m2 = await json(await call("/__pliant/manifest", { user: other }));
+    expect(m2.capabilities.find((c: any) => c.id === "message.send").policy.maxFanOut).toBe(5);
+  });
+  it("rejects unknown capabilities and malformed config", async () => {
+    expect((await call("/__pliant/dev/config", { method: "PUT", user: "v_dev00003", body: JSON.stringify({ policies: { "nope.x": { maxFanOut: 2 } } }) })).status).toBe(400);
+    expect((await call("/__pliant/dev/config", { method: "PUT", user: "v_dev00003", body: JSON.stringify({ dials: { L0: "wide-open" } }) })).status).toBe(400);
+  });
+  it("locks can be changed per session and are enforced by the validator", async () => {
+    const dev = "v_dev00004";
+    await call("/__pliant/dev/config", { method: "PUT", user: dev, body: JSON.stringify({ locks: ["brand.logo", "chatList.stories"] }) });
+    const patch = { id: "p1", layer: "L1", request: "r", createdAt: "x", enabled: true, workflows: [], ops: [{ op: "hide", target: "chatList.stories" }] };
+    expect((await call(`/__pliant/profile/${dev}/patches/p1`, { method: "PUT", user: dev, body: JSON.stringify(patch) })).status).toBe(422);
+    expect((await call(`/__pliant/profile/u2/patches/p1`, { method: "PUT", user: "u2", body: JSON.stringify(patch) })).status).toBe(200);
+  });
+});

@@ -1,0 +1,40 @@
+{
+ "mock": {
+  "label": "mock",
+  "model": "fixtures",
+  "n": 30,
+  "correctOutcome": "21/30 (70%)",
+  "byKind": {
+   "in-scope": "7/14 (50%)",
+   "edge": "4/6 (67%)",
+   "must-reject": "10/10 (100%)"
+  },
+  "unsafeBlocked": "10/10 (100%)",
+  "unsafePatchesProducedOverall": 0,
+  "requestsNeedingRetry": 0,
+  "latencyMs": {
+   "mean": 0,
+   "p50": 0,
+   "p95": 1
+  }
+ },
+ "ollama": {
+  "label": "ollama-qwen3.5-4b",
+  "model": "qwen3.5:4b",
+  "n": 30,
+  "correctOutcome": "26/30 (87%)",
+  "byKind": {
+   "in-scope": "12/14 (86%)",
+   "edge": "4/6 (67%)",
+   "must-reject": "10/10 (100%)"
+  },
+  "unsafeBlocked": "10/10 (100%)",
+  "unsafePatchesProducedOverall": 0,
+  "requestsNeedingRetry": 1,
+  "latencyMs": {
+   "mean": 20519,
+   "p50": 7760,
+   "p95": 45026
+  }
+ }
+}

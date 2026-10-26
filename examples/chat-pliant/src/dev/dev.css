@@ -1,0 +1,43 @@
+@import "../../../shared/groupy.css";
+body { background: var(--bg-alt); }
+.dev { max-width: 62rem; margin: 0 auto; padding: 1.2rem 1rem 4rem; }
+.dev header { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.dev h1 { margin: 0; font-size: 2rem; letter-spacing: -0.03em; }
+.dev h2 { font-size: 1.15rem; margin: 0 0 0.2rem; letter-spacing: -0.01em; }
+.dev .sub { color: var(--muted); font-size: 0.88rem; margin: 0 0 0.8rem; }
+.dev nav a { color: var(--accent); margin-right: 1rem; text-decoration: none; font-size: 0.9rem; }
+.card { background: var(--bg); border-radius: 18px; padding: 1.1rem 1.2rem; margin-bottom: 1rem; box-shadow: 0 1px 2px rgb(0 0 0 / 6%); }
+.pill { display: inline-block; font-size: 0.72rem; padding: 0.15em 0.6em; border-radius: 99px; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-weight: 600; }
+.pill.read { background: #e8f0fe; color: #1a56db; } .pill.write { background: #e6f6ec; color: #1a7f37; } .pill.destructive { background: #fde8e8; color: #c81e1e; } .pill.external { background: #fff3e0; color: #b45309; }
+.seg { display: inline-flex; background: var(--bg-alt); border-radius: 99px; padding: 2px; }
+.seg button { background: transparent; border-radius: 99px; padding: 0.25em 0.8em; font-size: 0.82rem; }
+.seg button.on { background: var(--bg); box-shadow: 0 1px 3px rgb(0 0 0 / 18%); font-weight: 600; }
+.dials { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.6rem 1.5rem; }
+.dial { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; }
+.dial small { color: var(--muted); display: block; font-size: 0.75rem; }
+.locks { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.lock { border: 1px solid var(--border); background: var(--bg); font-size: 0.82rem; }
+.lock.on { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); border-color: transparent; font-weight: 600; }
+table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+th { text-align: left; color: var(--muted); font-weight: 500; font-size: 0.75rem; padding: 0.3rem 0.5rem; }
+td { padding: 0.5rem; border-top: 1px solid var(--border); vertical-align: middle; }
+td input[type=number] { width: 4.8rem; padding: 0.25em 0.5em; }
+.sw { position: relative; width: 2.4em; height: 1.45em; padding: 0; border-radius: 99px; background: color-mix(in srgb, var(--muted) 35%, transparent); }
+.sw i { position: absolute; top: 0.125em; left: 0.125em; width: 1.2em; height: 1.2em; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 30%); transition: transform 260ms var(--spring); }
+.sw.on { background: var(--accent); } .sw.on i { transform: translateX(0.95em); }
+.changed { box-shadow: inset 3px 0 0 var(--accent); }
+.try textarea { width: 100%; border-radius: 14px; min-height: 3.6rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0; }
+.chips button { font-size: 0.8rem; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); }
+.result { background: var(--bg-alt); border-radius: 14px; padding: 0.8rem 1rem; margin-top: 0.7rem; }
+.result.deny { background: color-mix(in srgb, var(--danger) 9%, var(--bg-alt)); }
+pre { background: var(--bg-alt); border-radius: 12px; padding: 0.7rem; overflow: auto; font-size: 0.78rem; margin: 0.5rem 0 0; }
+.layers { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.8rem; margin: 0.6rem 0 1rem; }
+.layers > div { background: var(--bg-alt); border-radius: 14px; padding: 0.8rem 1rem; font-size: 0.88rem; }
+.layers b { display: block; margin-bottom: 0.2rem; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0.6rem; margin: 0.6rem 0; }
+.stat { background: var(--bg-alt); border-radius: 14px; padding: 0.7rem 0.9rem; }
+.stat b { display: block; font-size: 1.5rem; letter-spacing: -0.02em; }
+.stat span { color: var(--muted); font-size: 0.78rem; }
+.ok-t { color: #1a7f37; font-weight: 600; } .bad-t { color: var(--danger); font-weight: 600; }
+.toast { position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 0.5rem 1rem; border-radius: 99px; font-size: 0.85rem; z-index: 9; }

@@ -62,7 +62,7 @@ export interface PliantCtx {
   runWorkflow: (id: string, opts?: { input?: unknown[] }) => Promise<void>;
   dryRun: (wf: Workflow) => Promise<string[]>;
 
-  customize: (request: string, llm?: LlmKey) => Promise<CustomizeResponse>;
+  customize: (request: string, llm?: LlmKey, signal?: AbortSignal) => Promise<CustomizeResponse>;
   savePatch: (p: Patch) => Promise<string[]>;
   togglePatch: (id: string) => Promise<void>;
   deletePatch: (id: string) => Promise<void>;
@@ -257,7 +257,7 @@ export function PliantProvider({ manifestUrl, userId, baseUrl = "", onChange, ch
   }, [manifest, slotData]);
 
   // ----- profile management -----
-  const customize = useCallback((request: string, llm?: LlmKey) => pliantApi.customize(cfg, request, llm), [cfg]);
+  const customize = useCallback((request: string, llm?: LlmKey, signal?: AbortSignal) => pliantApi.customize(cfg, request, llm, signal), [cfg]);
   const savePatch = useCallback(async (p: Patch) => {
     const r = await pliantApi.savePatch(cfg, p);
     await refreshProfile();

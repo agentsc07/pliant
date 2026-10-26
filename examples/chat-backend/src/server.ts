@@ -19,6 +19,7 @@ const pliantWeb = process.env.WEB_DIR ?? resolve(here, "../../chat-pliant/dist")
 const classicWeb = process.env.CLASSIC_WEB_DIR ?? resolve(here, "../../chat-classic/dist");
 if (existsSync(pliantWeb)) {
   app.get("/compare", (_req, res) => res.sendFile(resolve(pliantWeb, "compare.html")));
+  app.get("/dev", (_req, res) => res.sendFile(resolve(pliantWeb, "dev.html")));
   if (existsSync(classicWeb)) app.use("/classic", express.static(classicWeb));
   app.use(express.static(pliantWeb));
 }

@@ -143,3 +143,59 @@ test("profile management: toggle, diff, delete, reset", async ({ page }) => {
   await expect(page.getByTestId("no-patches")).toBeVisible();
   await expect(page.getByTestId("stories")).toBeVisible();
 });
+
+test("11 · new controls: a toggle, a grid layout, then undo", async ({ page }) => {
+  await ask(page, "Add a toggle to show only unread groups");
+  await expect(page.getByTestId("preview-changes")).toContainText("“Unread only” switch".replace(/[“”]/g, '"'));
+  await accept(page);
+  const before = await page.locator(".group-row").count();
+  await page.getByTestId("toggle-Unread only").click();
+  await expect(page.locator(".group-row")).not.toHaveCount(before);
+  await page.getByTestId("customize-open").click();
+  await page.getByTestId("customize-input").fill("Show my groups as a grid");
+  await page.getByTestId("customize-submit").click();
+  await page.getByTestId("patch-accept").click();
+  await expect(page.locator(".pliant-layout[data-layout=grid]")).toBeVisible();
+  await page.getByTestId("undo").click();
+  await expect(page.locator(".pliant-layout[data-layout=grid]")).toHaveCount(0);
+});
+
+test("12 · unknown request on the demo model is a neutral note with example chips, not a refusal", async ({ page }) => {
+  await ask(page, "make the buttons spin");
+  await expect(page.getByTestId("verdict")).toContainText("Demo model");
+  await expect(page.getByTestId("clarify")).toHaveCount(0);
+  await expect(page.getByTestId("examples")).toBeVisible();
+});
+
+test("13 · visitors are isolated: a change in one browser context is not seen in another", async ({ page, browser }) => {
+  await ask(page, "Dark mode, bigger text, compact list");
+  await accept(page);
+  await expect(page.locator("[data-theme=dark]")).toBeVisible();
+  const other = await (await browser.newContext()).newPage();
+  await other.goto("/");
+  await expect(other.getByTestId("group-list")).toBeVisible();
+  await expect(other.locator("[data-theme=dark]")).toHaveCount(0);
+});
+
+test("14 · developer console: tightening a limit is enforced for that session only", async ({ page, request }) => {
+  await page.goto("/dev");
+  await expect(page.getByRole("heading", { name: "Developer console" })).toBeVisible();
+  const input = page.getByLabel("message.send max per run");
+  await input.fill("2");
+  await expect(page.getByRole("status")).toContainText("Saved");
+  await page.getByRole("button", { name: "Tampered client: 7 sends in a 1-send run" }).click();
+  await expect(page.getByText("Layer 3 · server enforcement")).toBeVisible();
+  await expect(page.getByText("Blocked").first()).toBeVisible();
+  const m = await (await request.get(`${API}/__pliant/manifest`, { headers: { "x-user-id": "u2" } })).json();
+  expect(m.capabilities.find((c: any) => c.id === "message.send").policy.maxFanOut).toBe(5);
+});
+
+test("15 · phone layout: list → chat → back", async ({ browser }) => {
+  const p = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+  await p.goto("/");
+  await p.locator(".group-row").first().click();
+  await expect(p.getByTestId("conversation")).toBeVisible();
+  await expect(p.getByTestId("group-list")).toBeHidden();
+  await p.getByRole("button", { name: "Back to groups" }).click();
+  await expect(p.getByTestId("group-list")).toBeVisible();
+});

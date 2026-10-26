@@ -115,6 +115,14 @@ Policy defaults by effect: `read`/`write` → batchable; `destructive` → not b
 Classic → Pliant for the Groupy frontend is **5 files, +45 / −17 lines** (of ~225 lines of app code):
 `App.tsx` (provider/screen/slots), `GroupList.tsx` (`<Item>`), `Header.tsx` (locked slots + button), `main.tsx` (register `GroupRow`), `styles.css` (dark palette, height). Reproduce with `diff -ru examples/chat-classic/src examples/chat-pliant/src`.
 
+## What users can do (ops)
+
+`setTheme`, `setToken` (incl. `navPosition` left/top, accent with auto-contrast text) · `hide`, `move`, `resize`, `reorder`, `setLayout` (list/grid/row) · `addView`, `addFilter`, `addToggle` (a switch that filters, hides or sets a token), `addRule` (highlight / dim / bold matching rows) · `addComponent` (e.g. `SortControl`), `enableSelection`, `addWorkflow`.
+
+**Developer console** (`/dev` in the demo): edit layer dials, locks and per-capability limits live, try requests as a user, read the audit log, and run the "try to break it" safety checks. Server side: `/__pliant/dev/*` (per-session sandbox; disable with `devConsole: false`).
+
+**Host-app contract additions:** mark your list container with `data-layout-target` so `setLayout` can turn it into a grid/row; optional `examples` (one-click prompts) and `labels` (human slot names) on `createPliant`.
+
 ## Control layers
 
 | Layer | Examples | Ops |

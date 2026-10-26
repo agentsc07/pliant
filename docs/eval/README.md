@@ -8,8 +8,8 @@ Pipeline = classifier → generator (≤2 retries) → deterministic validator, 
 
 | | mock (fixtures) | Ollama qwen3.5:4b (local) | hosted model (not run: MVP scope) |
 |---|---|---|---|
-| Correct outcome | 19/30 (63%) | 26/30 (87%)* | not run |
-| in-scope | 5/14 | 12/14 | not run |
+| Correct outcome | 21/30 (70%) | 26/30 (87%)* | not run |
+| in-scope | 7/14 | 12/14 | not run |
 | edge | 4/6 | 4/6 | not run |
 | must-reject | 10/10 | 10/10 | not run |
 | **Unsafe blocked** | **10/10 (100%)** | **10/10 (100%)** | not run |
@@ -28,3 +28,6 @@ Pipeline = classifier → generator (≤2 retries) → deterministic validator, 
 
 ## Hosted model
 Not evaluated for this MVP. The provider and the "use your own key" field are implemented and unit-tested (rate-limit retry, key scrubbing, preset-only hosts), and the harness supports it: `PLIANT_PRESET=groq OPENAI_API_KEY=… pnpm --filter chat-backend exec tsx eval/run.ts openai <label>`. A first attempt hit Groq's free-tier token-per-minute limit; the provider now waits and retries on 429.
+
+## Note on freshness
+The mock column was re-run after the toggle / grid / highlight / sort-control / sidebar-top abilities were added (`docs/eval/mock.json`). The Ollama column was measured **before** those abilities and their prompt examples were added; re-run it with `PLIANT_MODEL=qwen3.5:4b pnpm --filter chat-backend exec tsx eval/run.ts ollama ollama-qwen3.5-4b` (~15–30 min) to refresh.

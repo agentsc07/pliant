@@ -30,3 +30,12 @@
 
 ## Decision — hosted evaluation skipped
 - Owner chose MVP scope: no hosted-model evaluation. Column marked "not run" in docs/eval/README.md. Groq default model updated (llama-3.3-70b-versatile was retired 2026-08-16) and 429 retry added.
+
+## Polish pass (post-deploy review)
+- Per-visitor sessions (`v_…` ids; own clone of u1's data; messages isolated; cap 2000). Fixes the shared-`u1` profile leak seen on the live demo.
+- New abilities: `addToggle`, `setLayout`, `addRule`, `navPosition`; sort control; contrast-safe accent (`--accent-fg` from luminance); mock demo-limit state with example chips.
+- Base app restyled (shared `examples/shared/groupy.css`, Apple-style: large title, glass bars, bubbles with grouping/timestamps, relative times, mobile master/detail). Classic and Pliant share it.
+- Panel: sheet on glass, plain-language previews (`explainPatch`), undo, cancel + elapsed time, example chips.
+- Developer console `/dev` + per-session server sandbox (dials/locks/policies) + audit log + safety demo + eval numbers.
+- Bugs found by tests while doing this: toggle inside `<label>` double-fired (fixed); seed had no fully-read groups so "unread only" was a no-op (seed tweak, rng unchanged); a racy react test fixed.
+- Tests: core 46, server 4, studio 9, react 10, backend 26, e2e 15, all green. Mock eval re-run: 21/30, unsafe blocked 10/10. Ollama eval is from before these abilities (noted in docs/eval/README.md).

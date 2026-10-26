@@ -59,7 +59,9 @@ export function seed(db: Db, now = Date.now()) {
       db.prepare("INSERT INTO groups VALUES (?,?,?,?)").run(gid, name, 3 + Math.floor(rand() * 200), ADMIN_ONLY_MUTE.has(name) ? 1 : 0);
       for (const u of USERS) {
         // A spread of unread counts so ">50 unread" is meaningful; a few groups not opened for 30+ days.
-        const unread = rand() < 0.2 ? 51 + Math.floor(rand() * 120) : Math.floor(rand() * 30);
+        const raw = rand() < 0.2 ? 51 + Math.floor(rand() * 120) : Math.floor(rand() * 30);
+        // Every 4th group is fully read, so "unread only" has something to hide. (rng consumption is unchanged.)
+        const unread = raw <= 50 && i % 4 === 2 ? 0 : raw;
         const stale = rand() < 0.25;
         db.prepare("INSERT INTO memberships VALUES (?,?,?,?,?,?,?)").run(
           u.id, gid, null, 0, rand() < 0.1 ? 1 : 0, unread, now - (stale ? 35 + Math.floor(rand() * 60) : Math.floor(rand() * 10)) * day,
